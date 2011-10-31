@@ -26,25 +26,88 @@ MONTHS = {
 	'nov': 11, 'november': 11,
 	'dec': 12, 'december': 12}
 
+def generate_objects(bibliography):
+
+	# publication types
+	types = Type.objects.all()
+
+	publications = []
+	for entry in bibliography:
+		# parse authors
+		authors = split(entry['author'], ' and ')
+		for i in range(len(authors)):
+			author = split(authors[i], ',')
+			author = [author[-1]] + author[:-1]
+			authors[i] = join(author, ' ')
+		authors = join(authors, ', ')
+
+		# add missing keys
+		keys = [
+			'journal',
+			'booktitle',
+			'publisher',
+			'url',
+			'doi',
+			'keywords',
+			'note',
+			'month']
+
+		for key in keys:
+			if not entry.has_key(key):
+				entry[key] = ''
+
+		# map integer fields to integers
+		entry['month'] = MONTHS.get(entry['month'].lower(), 0)
+		entry['volume'] = entry.get('volume', None)
+		entry['number'] = entry.get('number', None)
+
+		# determine type
+		type_id = None
+
+		for t in types:
+			if entry['@type'] in t.bibtex_type_list:
+				type_id = t.id
+				break
+
+		if type_id is None:
+			errors.append('Type "' + entry['type'] + '" unknown.')
+			break
+
+		# add publication
+		publications.append(Publication(
+			type_id=type_id,
+			title=entry['title'],
+			authors=authors,
+			year=entry['year'],
+			month=entry['month'],
+			journal=entry['journal'],
+			book_title=entry['booktitle'],
+			publisher=entry['publisher'],
+			volume=entry['volume'],
+			number=entry['number'],
+			note=entry['note'],
+			url=entry['url'],
+			doi=entry['doi'],
+			keywords=entry['keywords']))
+
+	return publications
+
 def import_bibtex(request):
 	if request.method == 'POST':
 		# container for error messages
 		errors = list()
 
-		# publication types
-		types = Type.objects.all()
-
 		# check for errors
 		if not request.POST['bibliography']:
 			errors.append('This field is required.')
 
+		bibliography = list()
 		if not errors:
 			parser = BibTeXParser()
 			entries = parser.parse(request.POST['bibliography'])
 			if entries == None:
 				for error in parser.getErrors():
 					errors.append("%s (line: %d, column %d)" % (error["message"], error["line"], error["column"]))
-			bib = list()
 			processor = BibTeXProcessor()
 			for entry in entries:
 				processed_entry = processor.process(entry)
@@ -53,76 +116,10 @@ def import_bibtex(request):
 						errors.append("%s (line: %d, column %d)" % (error["message"], error["line"], error["column"]))
 					continue
 				processed_entry["type"] = entry["type"]
-				bib.append(processed_entry)
+				bibliography.append(processed_entry)
 
 		if not errors:
-
-			publications = []
-			# try adding publications
-			for entry in bib:
-				print entry
-				if entry.has_key('title') and \
-				   entry.has_key('author') and \
-				   entry.has_key('year'):
-					# parse authors
-					authors = split(entry['author'], ' and ')
-					for i in range(len(authors)):
-						author = split(authors[i], ',')
-						author = [author[-1]] + author[:-1]
-						authors[i] = join(author, ' ')
-					authors = join(authors, ', ')
-
-					# add missing keys
-					keys = [
-						'journal',
-						'booktitle',
-						'publisher',
-						'url',
-						'doi',
-						'keywords',
-						'note',
-						'month']
-
-					for key in keys:
-						if not entry.has_key(key):
-							entry[key] = ''
-
-					# map integer fields to integers
-					entry['month'] = MONTHS.get(entry['month'].lower(), 0)
-					entry['volume'] = entry.get('volume', None)
-					entry['number'] = entry.get('number', None)
-
-					# determine type
-					type_id = None
-
-					for t in types:
-						if entry['type'] in t.bibtex_type_list:
-							type_id = t.id
-							break
-
-					if type_id is None:
-						errors.append('Type "' + entry['type'] + '" unknown.')
-						break
-
-					# add publication
-					publications.append(Publication(
-						type_id=type_id,
-						title=entry['title'],
-						authors=authors,
-						year=entry['year'],
-						month=entry['month'],
-						journal=entry['journal'],
-						book_title=entry['booktitle'],
-						publisher=entry['publisher'],
-						volume=entry['volume'],
-						number=entry['number'],
-						note=entry['note'],
-						url=entry['url'],
-						doi=entry['doi'],
-						keywords=entry['keywords']))
-				else:
-					errors.append('Make sure that the keys title, author and year are present.')
-					break
+			publications = generate_objects(bibliography)
 
 		if not errors and not publications:
 			errors.append('No valid BibTex entries found.')

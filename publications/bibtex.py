@@ -211,7 +211,7 @@ class BibTeXParser:
         if c == "\\":
           continue
         else:
-          value = substr(self.raw, start, self.position - start);
+          value = self.raw[start : self.position];
           entry[key] = self._cleanValue(value)
           self._pop()
           self.state = 10
@@ -227,7 +227,7 @@ class BibTeXParser:
         if c == "\\":
           continue
         else:
-          value = substr(self.raw, start, self.position - start);
+          value = self.raw[start : self.position];
           entry["fields"][key] = value;
           self.state = 10;
 
