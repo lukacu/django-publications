@@ -9,7 +9,6 @@
 				{% else %}
 					<h1>{{ type }}{% if forloop.first %} by {{ author }}{% endif %}</h1>
 				{% endif %}
-				<hr/>
 				<div{% if not forloop.last %} style="margin-bottom: 30px;"{% endif %}>
 					{% for publication in type.publications %}
 						<div{% if not forloop.last %} style="margin-bottom: 20px;"{% endif %}>
