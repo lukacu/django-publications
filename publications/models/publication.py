@@ -159,8 +159,10 @@ class Publication(models.Model):
 
 
 	def key(self):
+		from publications.transcode import unicode_to_ascii
+
 		# this publication's first author
-		author_lastname = self.authors_list[0].split(' ')[-1]
+		author_lastname = unicode_to_ascii(self.authors_list[0].split(' ')[-1]).replace("?", "_")
 
 		publications = Publication.objects.filter(
 			year=self.year,
@@ -176,7 +178,7 @@ class Publication(models.Model):
 			if publication.authors_list[0].split(' ')[-1] == author_lastname:
 				char += 1
 
-		return self.authors_list[0].split(' ')[-1] + str(self.year) + chr(char)
+		return author_lastname + str(self.year) + chr(char)
 
 
 	def month_bibtex(self):
@@ -192,3 +194,41 @@ class Publication(models.Model):
 			return self.journal
 		else:
 			return self.book_title
+
+
+	def to_bibtex(self):
+		from publications.bibtex import BibTeXFormatter
+
+		formatter = BibTeXFormatter()
+
+		entry = {}
+		entry["@type"] = self.type.bibtex_type
+		entry["@key"] = self.key()
+		entry["title"] = self.title
+		entry["author"] = self.authors_bibtex
+		entry["year"] = self.year
+
+		if self.journal:
+			entry["journal"] = self.journal
+		if self.book_title:
+			entry["booktitle"] = self.book_title
+		if self.publisher:
+			entry["publisher"] = self.publisher
+		if self.volume:
+			entry["volume"] = self.volume
+		if self.number:
+			entry["number"] = self.number
+		if self.pages:
+			entry["pages"] = self.pages
+		if self.month:
+			entry["month"] = self.month
+		if self.keywords:
+			entry["keywords"] = self.keywords
+		if self.doi:
+			entry["doi"] = self.doi
+		if self.url:
+			entry["url"] = self.url
+		if self.note:
+			entry["note"] = self.note
+
+		return formatter.format(entry)

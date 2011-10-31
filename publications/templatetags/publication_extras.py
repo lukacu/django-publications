@@ -11,11 +11,6 @@ from re import sub
 
 register = Library()
 
-GREEK_LETTERS = \
-	'[Aa]lpha|[Bb]eta|[Gg]amma|[Dd]elta|[Ee]psilon|[Zz]eta|' + \
-	'[Ee]ta|[Tt]heta|[Ll]ambda|[Mm]u|[Nn]u|[Pp]i|[Ss]igma|[Tt]au|' + \
-	'[Pp]hi|[Pp]si|[Cc]hi|[Oo]mega|[Rr]ho|[Xx]i|[Kk]appa'
-
 def get_publication(id):
 	pbl = Publication.objects.filter(pk=int(id))
 
@@ -24,15 +19,5 @@ def get_publication(id):
 	return get_template('publications/publication.html').render(
 		Context({'publication': pbl[0]}))
 
-def tex_parse(string):
-	def tex_replace(match):
-		return \
-			sub(r'\^(\w)', r'<sup>\1</sup>',
-			sub(r'\^\{(.*?)\}', r'<sup>\1</sup>',
-			sub(r'\_(\w)', r'<sub>\1</sub>',
-			sub(r'\_\{(.*?)\}', r'<sub>\1</sub>',
-			sub(r'\\(' + GREEK_LETTERS + ')', r'&\1;', match.group(1))))))
-	return mark_safe(sub(r'\$([^\$]*)\$', tex_replace, escape(string)))
-
 register.simple_tag(get_publication)
-register.filter('tex_parse', tex_parse)
+

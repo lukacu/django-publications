@@ -7,7 +7,7 @@ from django.template import RequestContext
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.http import HttpResponseRedirect
-from publications.bibtex import parse
+from publications.bibtex import BibTeXParser, BibTeXProcessor
 from publications.models import Publication, Type
 from string import split, join
 
@@ -28,25 +28,39 @@ MONTHS = {
 
 def import_bibtex(request):
 	if request.method == 'POST':
-		# try to parse BibTex
-		bib = parse(request.POST['bibliography'])
-
 		# container for error messages
-		errors = {}
+		errors = list()
 
 		# publication types
 		types = Type.objects.all()
 
 		# check for errors
-		if not bib:
-			if not request.POST['bibliography']:
-				errors['bibliography'] = 'This field is required.'
+		if not request.POST['bibliography']:
+			errors.append('This field is required.')
 
 		if not errors:
-			publications = []
+			parser = BibTeXParser()
+			entries = parser.parse(request.POST['bibliography'])
+			if entries == None:
+				for error in parser.getErrors():
+					errors.append("%s (line: %d, column %d)" % (error["message"], error["line"], error["column"]))
+			bib = list()
+			processor = BibTeXProcessor()
+			for entry in entries:
+				processed_entry = processor.process(entry)
+				if processed_entry == None:
+					for error in processor.getErrors():
+						errors.append("%s (line: %d, column %d)" % (error["message"], error["line"], error["column"]))
+					continue
+				processed_entry["type"] = entry["type"]
+				bib.append(processed_entry)
 
+		if not errors:
+
+			publications = []
 			# try adding publications
 			for entry in bib:
+				print entry
 				if entry.has_key('title') and \
 				   entry.has_key('author') and \
 				   entry.has_key('year'):
@@ -87,7 +101,7 @@ def import_bibtex(request):
 							break
 
 					if type_id is None:
-						errors['bibliography'] = 'Type "' + entry['type'] + '" unknown.'
+						errors.append('Type "' + entry['type'] + '" unknown.')
 						break
 
 					# add publication
@@ -107,14 +121,15 @@ def import_bibtex(request):
 						doi=entry['doi'],
 						keywords=entry['keywords']))
 				else:
-					errors['bibliography'] = 'Make sure that the keys title, author and year are present.'
+					errors.append('Make sure that the keys title, author and year are present.')
 					break
 
 		if not errors and not publications:
-			errors['bibliography'] = 'No valid BibTex entries found.'
+			errors.append('No valid BibTex entries found.')
 
 		if errors:
 			# some error occurred
+			errors = {"bibliography" : errors}
 			return render_to_response(
 				'admin/publications/import_bibtex.html', {
 					'errors': errors,
@@ -134,7 +149,6 @@ def import_bibtex(request):
 					msg = 'Successfully added ' + str(len(publications)) + ' publications.'
 				else:
 					msg = 'Successfully added ' + str(len(publications)) + ' publication.'
-
 
 			# show message
 			messages.info(request, msg)
