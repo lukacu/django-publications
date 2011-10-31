@@ -195,15 +195,8 @@ class Publication(models.Model):
 		else:
 			return self.book_title
 
-
-	def to_bibtex(self):
-		from publications.bibtex import BibTeXFormatter
-
-		formatter = BibTeXFormatter()
-
+	def to_dictionary(self):
 		entry = {}
-		entry["@type"] = self.type.bibtex_type
-		entry["@key"] = self.key()
 		entry["title"] = self.title
 		entry["author"] = self.authors_bibtex
 		entry["year"] = self.year
@@ -230,5 +223,16 @@ class Publication(models.Model):
 			entry["url"] = self.url
 		if self.note:
 			entry["note"] = self.note
+
+		return entry
+
+	def to_bibtex(self):
+		from publications.bibtex import BibTeXFormatter
+
+		formatter = BibTeXFormatter()
+
+		entry = self.to_dictionary()
+		entry["@type"] = self.type.bibtex_type
+		entry["@key"] = self.key()
 
 		return formatter.format(entry)

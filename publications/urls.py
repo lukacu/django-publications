@@ -3,11 +3,12 @@ __author__ = 'Lucas Theis <lucas@theis.io>'
 __docformat__ = 'epytext'
 
 from django.conf.urls.defaults import *
+from django.views.static import serve
 
 urlpatterns = patterns('',
-	(r'^$', 'publications.views.year'),
-	(r'^(?P<publication_id>\d+)/$', 'publications.views.id'),
-	(r'^year/(?P<year>\d+)/$', 'publications.views.year'),
-	(r'^tag/(?P<keyword>.+)/$', 'publications.views.keyword'),
-	(r'^(?P<name>.+)/$', 'publications.views.person'),
+	url(r'^$', 'publications.views.year', name='publications'),
+	url(r'^(?P<publication_id>\d+)/$', 'publications.views.id', name='publication'),
+	url(r'^year/(?P<year>\d+)/$', 'publications.views.year', name='publications-year'),
+	url(r'^keyword/(?P<keyword>.+)/$', 'publications.views.keyword', name='publications-keyword'),
+	url(r'^(?P<name>.+)/$', 'publications.views.person', name='publications-author'),
 )

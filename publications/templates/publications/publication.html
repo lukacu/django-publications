@@ -1,9 +1,9 @@
 {% load publication_extras %}
 
 {% for author, author_escaped in publication.authors_escaped %}
-<a href="/publications/{{ author_escaped }}/" class="author">{{ author }}</a>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
+<a href="{% url publications-author name=author_escaped %}" class="author">{{ author }}</a>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
 {% endfor %}<br />
-<b><a href="/publications/{{ publication.pk }}/" class="title">{{ publication.title }}</a></b><br/>
+<b><a href="{% url publication publication_id=publication.pk %}" class="title">{{ publication.title }}</a></b><br/>
 {% if publication.journal %}
 	<i>{{ publication.journal }}, {{ publication.year }}</i><br />
 {% else %}
@@ -13,7 +13,7 @@
 {% endif %}
 {% if publication.keywords %}
 	{% for keyword, keyword_escaped in publication.keywords_escaped %}
-		<a class="keyword" href="/publications/tag/{{ keyword_escaped }}/">{{ keyword }}</a>
+		<a class="keyword" href="{% url publications-keyword keyword=keyword_escaped %}">{{ keyword }}</a>
 	{% endfor %}
 	<br />
 {% endif %}
@@ -21,4 +21,4 @@
 {% if publication.url %}<a class="link" rel="external" href="{{ publication.url }}">URL</a>,{% endif %}
 {% if publication.pdf %}<a class="link" href="{{ MEDIA_URL }}{{ publication.pdf }}">PDF</a>,{% endif %}
 {% if publication.doi %}<a class="link" rel="external" href="http://dx.doi.org/{{ publication.doi }}">DOI</a>,{% endif %}
-<a href="/publications/{{ publication.pk }}/?bibtex">BibTex</a>
+<a href="{% url publication publication_id=publication.pk %}?format=bibtex">BibTex</a>

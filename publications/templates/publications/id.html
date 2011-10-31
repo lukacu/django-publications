@@ -9,6 +9,6 @@
 		</div>
 		<h1>Reference</h1>
 		<hr/>
-		<pre lang="bibtex">{% include "publications/publication.bib" %}</pre>
+		<pre lang="bibtex">{{ publication.to_bibtex }}</pre>
 	{% endfor %}
 {% endblock %}
