@@ -21,3 +21,44 @@ def get_publication(id):
 
 register.simple_tag(get_publication)
 
+# Returns bibtex for one or more publications
+def to_bibtex(publications):
+
+	from publications.bibtex import BibTeXFormatter
+	from publications.transcode import unicode_to_ascii
+	bibtex_keys = set()
+
+	import collections
+
+	if not isinstance(publications, collections.Iterable):
+		publications = [publications]
+
+	formatter = BibTeXFormatter()
+	output = []
+
+	for publication in publications:
+		entry = publication.to_dictionary()
+		entry["@type"] = publication.type
+
+		first_author = publication.first_author()
+		if first_author:
+			author_identifier = first_author.identifier()
+		else:
+			author_identifier = "UNCREDITED"
+		key_base = unicode_to_ascii(author_identifier).replace("?", "_") + str(publication.year)
+
+		char = ord('a')
+		bibtex_key = key_base + chr(char)
+		while bibtex_key in bibtex_keys:
+			char = char + 1
+			bibtex_key = key_base + chr(char)
+
+		bibtex_keys.add(bibtex_key)
+		entry["@key"] = bibtex_key
+
+		output.append(formatter.format(entry))
+
+	return "\n".join(output)
+
+register.simple_tag(to_bibtex)
+

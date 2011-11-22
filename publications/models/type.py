@@ -3,7 +3,7 @@ __author__ = 'Lucas Theis <lucas@theis.io>'
 __docformat__ = 'epytext'
 
 from django.db import models
-from publications.models.orderedmodel import OrderedModel
+from publications.orderedmodel import OrderedModel
 from string import replace, split, strip
 
 class Type(OrderedModel):

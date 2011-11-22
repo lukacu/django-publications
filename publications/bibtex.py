@@ -6,6 +6,122 @@ import urllib
 import StringIO, codecs
 import re, os, os.path
 
+## {{{ http://code.activestate.com/recipes/81611/ (r2)
+def int_to_roman(input):
+   """
+   Convert an integer to Roman numerals.
+
+   Examples:
+   >>> int_to_roman(0)
+   Traceback (most recent call last):
+   ValueError: Argument must be between 1 and 3999
+
+   >>> int_to_roman(-1)
+   Traceback (most recent call last):
+   ValueError: Argument must be between 1 and 3999
+
+   >>> int_to_roman(1.5)
+   Traceback (most recent call last):
+   TypeError: expected integer, got <type 'float'>
+
+   >>> for i in range(1, 21): print int_to_roman(i)
+   ...
+   I
+   II
+   III
+   IV
+   V
+   VI
+   VII
+   VIII
+   IX
+   X
+   XI
+   XII
+   XIII
+   XIV
+   XV
+   XVI
+   XVII
+   XVIII
+   XIX
+   XX
+   >>> print int_to_roman(2000)
+   MM
+   >>> print int_to_roman(1999)
+   MCMXCIX
+   """
+   if type(input) != type(1):
+      raise TypeError, "expected integer, got %s" % type(input)
+   if not 0 < input < 4000:
+      raise ValueError, "Argument must be between 1 and 3999"   
+   ints = (1000, 900,  500, 400, 100,  90, 50,  40, 10,  9,   5,  4,   1)
+   nums = ('M',  'CM', 'D', 'CD','C', 'XC','L','XL','X','IX','V','IV','I')
+   result = ""
+   for i in range(len(ints)):
+      count = int(input / ints[i])
+      result += nums[i] * count
+      input -= ints[i] * count
+   return result
+
+def roman_to_int(input):
+   """
+   Convert a roman numeral to an integer.
+   
+   >>> r = range(1, 4000)
+   >>> nums = [int_to_roman(i) for i in r]
+   >>> ints = [roman_to_int(n) for n in nums]
+   >>> print r == ints
+   1
+
+   >>> roman_to_int('VVVIV')
+   Traceback (most recent call last):
+    ...
+   ValueError: input is not a valid roman numeral: VVVIV
+   >>> roman_to_int(1)
+   Traceback (most recent call last):
+    ...
+   TypeError: expected string, got <type 'int'>
+   >>> roman_to_int('a')
+   Traceback (most recent call last):
+    ...
+   ValueError: input is not a valid roman numeral: A
+   >>> roman_to_int('IL')
+   Traceback (most recent call last):
+    ...
+   ValueError: input is not a valid roman numeral: IL
+   """
+   if type(input) != type(""):
+      raise TypeError, "expected string, got %s" % type(input)
+   input = input.upper()
+   nums = ['M', 'D', 'C', 'L', 'X', 'V', 'I']
+   ints = [1000, 500, 100, 50,  10,  5,   1]
+   places = []
+   for c in input:
+      if not c in nums:
+         raise ValueError, "input is not a valid roman numeral: %s" % input
+   for i in range(len(input)):
+      c = input[i]
+      value = ints[nums.index(c)]
+      # If the next place holds a larger number, this value is negative.
+      try:
+         nextvalue = ints[nums.index(input[i +1])]
+         if nextvalue > value:
+            value *= -1
+      except IndexError:
+         # there is no next place.
+         pass
+      places.append(value)
+   sum = 0
+   for n in places: sum += n
+   # Easiest test for validity...
+   if int_to_roman(sum) == input:
+      return sum
+   else:
+      raise ValueError, 'input is not a valid roman numeral: %s' % input
+## end of http://code.activestate.com/recipes/81611/ }}}
+
+
 class BibTeXParser:
 
   def parse(self, raw):
@@ -409,116 +525,117 @@ def parsePerson(raw):
   return None
 
 
+BIBTEX_FIELDS = {
+  "address" : {"description" : "Publisher's address (usually just the city, but can be the full address for lesser-known publishers)", "type" : "string"},
+  "annote" : {"description" : "An annotation for annotated bibliography styles (not typical)", "type" : "string"},
+  "author" : {"description" : "The name(s) of the author(s) (in the case of more than one author, separated by and)", "type" : "people"},
+  "booktitle" : {"description" : "The title of the book, if only part of it is being cited", "type" : "string"},
+  "chapter" : {"description" : "The chapter number", "type" : "string"},
+  "crossref" : {"description" : "The key of the cross-referenced entry", "type" : "string"},
+  "edition" : {"description" : "The edition of a book, long form (such as first or second)", "type" : "string"},
+  "editor" : {"description" : "The name(s) of the editor(s)", "type" : "people"},
+  "eprint" : {"description" : "A specification of an electronic publication, often a preprint or a technical report", "type" : "string"},
+  "howpublished" : {"description" : "How it was published, if the publishing method is nonstandard", "type" : "string"},
+  "institution" : {"description" : "The institution that was involved in the publishing, but not necessarily the publisher", "type" : "string"},
+  "journal" : {"description" : "The journal or magazine the work was published in", "type" : "string"},
+  "key" : {"description" : "A hidden field used for specifying or overriding the alphabetical order of entries (when the author and editor fields are missing). Note that this is very different from the key (mentioned just after this list) that is used to cite or cross-reference the entry.", "type" : "string"},
+  "month" : {"description" : "The month of publication (or, if unpublished, the month of creation)", "type" : "string"},
+  "note" : {"description" : "Miscellaneous extra information", "type" : "text"},
+  "number" : {"description" : "The number of a journal, magazine, or tech-report, if applicable. (Most publications have a volume, but no number field.)", "type" : "number"},
+  "organization" : {"description" : "The conference sponsor", "type" : "string"},
+  "pages" : {"description" : "Page numbers, separated either by commas or double-hyphens", "type" : "range"},
+  "publisher" : {"description" : "The publisher's name", "type" : "string"},
+  "school" : {"description" : "The school where the thesis was written", "type" : "string"},
+  "series" : {"description" : "The series of books the book was published in", "type" : "string"},
+  "title" : {"description" : "The title of the work", "type" : "string"},
+  "type" : {"description" : "The type of tech-report, for example, Research Note", "type" : "string"},
+  "url" : {"description" : "The WWW address to the electronic version of document", "type" : "url"},
+  "volume" : {"description" : "The volume of a journal or multi-volume book", "type" : "range"},
+  "year" : {"description" : "The year of publication (or, if unpublished, the year of creation)", "type" : "number"},
+# the fields that are not part of the original BibTeX standard
+  "abstract" : {"description" : "An abstract of the work", "type" : "text"},
+  "doi" : {"description" : "Digital Object Identifier", "type" : "string"},
+  "isbn" : {"description" : "The International Standard Book Number", "type" : "string"},
+  "issn" : {"description" : "The International Standard Serial Number. Used to identify a journal.", "type" : "string"},
+  "keywords" : {"description" : "Keywords associated with this entry.", "type" : "string"},
+  "owner" : {"description" : "Owner of the entry.", "type" : "string"},
+  "timestamp" : {"description" : "Timestamp of the entry.", "type" : "date"},
+  "groups" : {"description" : "Comma-separated list of groups that the entry belongs to.", "type" : "string"}
+}
+
+BIBTEX_TYPES = {
+"article" : {"required" : {"author", "title", "journal", "year"},
+    "optional" : {"volume", "number", "pages", "month", "note", "url", "abstract", "ISSN"},
+    "description" : "An article from a journal or magazine", "name" : "Article"
+    },
+"book" : {"required" : {"author", "title", "publisher", "year"},
+    "optional" : {"editor", "volume", "series", "address", "edition", "month", "note", "url", "abstract", "ISBN"},
+    "description" : "A book with an explicit publisher", "name" : "Book"
+    },
+"booklet" : {"required" : {"title"},
+    "optional" : {"author", "howpublished", "address", "month", "year", "note", "url"},
+    "description" : "A work that is printed and bound, but without a named publisher or sponsoring institution.", 
+    "name" : "Booklet"
+    },
+"conference" : {"required" : {"author", "title", "booktitle", "year"},
+    "optional" : {"editor", "pages", "organization", "publisher", "address", "month", "note", "url"},
+    "description" : "The same as inproceedings, included for Scribe (markup language) compatibility.", "name" : "Title"
+    },
+"inbook" : {"required" : {"author", "title", "chapter", "pages", "year"},
+    "optional" : {"editor", "volume", "series", "address", "edition", "month", "note", "url", "abstract", "ISBN"},
+    "description" : "A part of a book, which may be a chapter (or section or whatever) and/or a range of pages.",
+    "name" : "In book"
+    },
+"incollection" : {"required" : {"author", "title", "booktitle", "year"},
+    "optional" : {"editor", "pages", "organization", "address", "publisher", "month", "note", "url", "abstract"},
+    "description" : "A part of a book having its own title.",
+    "name" : "In collection"
+    },
+"inproceedings" : {"required" : {"author", "title", "booktitle", "year"},
+    "optional" : {"editor", "pages", "organization", "address", "publisher", "month", "note", "url", "abstract"},
+    "description" : "An article in a conference proceedings.",
+    "name" : "In proceedings"
+    },
+"manual" : {"required" : {"title"},
+    "optional" : {"author", "organization", "address", "edition", "month", "year", "note", "url"},
+    "description" : "Technical documentation",
+    "name" : "Manual"
+    },
+"mastersthesis" : {"required" : {"author", "title", "school", "year"},
+    "optional" : {"address", "month", "note", "url", "abstract"},
+    "description" : "A Masters thesis.",
+    "name" : "Master thesis"
+    },
+"misc" : {"required" : {},
+    "optional" : {"author", "title", "howpublished", "month", "year", "note", "url"},
+    "description" : "For use when nothing else fits.",
+    "name" : "Misc"
+    },
+"phdthesis" : {"required" : {"author", "title", "school", "year"},
+    "optional" : {"address", "month", "note", "url", "abstract"},
+    "description" : "A Ph.D. Thesis",
+    "name" : "PhD Thesis"
+    },
+"proceedings" : {"required" : {"title", "year"},
+    "optional" : {"editor", "publish", "organization", "address", "month", "note", "url"},
+    "description" : " The proceedings of a conference.",
+    "name" : "Proceedings"
+    },
+"techreport" : {"required" : {"author", "title", "institution", "year"},
+    "optional" : {"type", "number", "address", "month", "note", "url", "abstract"},
+    "description" : "A report published by a school or other institution, usually numbered within a series.",
+    "name" : "Tech report"
+    },
+"unpublished" : {"required" : {"author", "title", "note"},
+    "optional" : {"month", "year", "url"},
+    "description" : "A document having an author and title, but not formally published.",
+    "name" : "Unpublished"
+    }
+}
+
 class BibTeXProcessor:
 
   def __init__(self, strict = True, require = []):
-
-    self.bibtex_fields = {
-      "address" : {"description" : "Publisher's address (usually just the city, but can be the full address for lesser-known publishers)", "type" : "string"},
-      "annote" : {"description" : "An annotation for annotated bibliography styles (not typical)", "type" : "string"},
-      "author" : {"description" : "The name(s) of the author(s) (in the case of more than one author, separated by and)", "type" : "people"},
-      "booktitle" : {"description" : "The title of the book, if only part of it is being cited", "type" : "string"},
-      "chapter" : {"description" : "The chapter number", "type" : "string"},
-      "crossref" : {"description" : "The key of the cross-referenced entry", "type" : "string"},
-      "edition" : {"description" : "The edition of a book, long form (such as first or second)", "type" : "string"},
-      "editor" : {"description" : "The name(s) of the editor(s)", "type" : "people"},
-      "eprint" : {"description" : "A specification of an electronic publication, often a preprint or a technical report", "type" : "string"},
-      "howpublished" : {"description" : "How it was published, if the publishing method is nonstandard", "type" : "string"},
-      "institution" : {"description" : "The institution that was involved in the publishing, but not necessarily the publisher", "type" : "string"},
-      "journal" : {"description" : "The journal or magazine the work was published in", "type" : "string"},
-      "key" : {"description" : "A hidden field used for specifying or overriding the alphabetical order of entries (when the author and editor fields are missing). Note that this is very different from the key (mentioned just after this list) that is used to cite or cross-reference the entry.", "type" : "string"},
-      "month" : {"description" : "The month of publication (or, if unpublished, the month of creation)", "type" : "string"},
-      "note" : {"description" : "Miscellaneous extra information", "type" : "text"},
-      "number" : {"description" : "The number of a journal, magazine, or tech-report, if applicable. (Most publications have a volume, but no number field.)", "type" : "string"},
-      "organization" : {"description" : "The conference sponsor", "type" : "string"},
-      "pages" : {"description" : "Page numbers, separated either by commas or double-hyphens", "type" : "string"},
-      "publisher" : {"description" : "The publisher's name", "type" : "string"},
-      "school" : {"description" : "The school where the thesis was written", "type" : "string"},
-      "series" : {"description" : "The series of books the book was published in", "type" : "string"},
-      "title" : {"description" : "The title of the work", "type" : "string"},
-      "type" : {"description" : "The type of tech-report, for example, Research Note", "type" : "string"},
-      "url" : {"description" : "The WWW address to the electronic version of document", "type" : "url"},
-      "volume" : {"description" : "The volume of a journal or multi-volume book", "type" : "string"},
-      "year" : {"description" : "The year of publication (or, if unpublished, the year of creation)", "type" : "number"},
-  # the fields that are not part of the original BibTeX standard
-      "abstract" : {"description" : "An abstract of the work", "type" : "text"},
-      "doi" : {"description" : "Digital Object Identifier", "type" : "string"},
-      "isbn" : {"description" : "The International Standard Book Number", "type" : "string"},
-      "issn" : {"description" : "The International Standard Serial Number. Used to identify a journal.", "type" : "string"},
-      "keywords" : {"description" : "Keywords associated with this entry.", "type" : "string"},
-      "owner" : {"description" : "Owner of the entry.", "type" : "string"},
-      "timestamp" : {"description" : "Timestamp of the entry.", "type" : "date"}
-    }
-
-    self.bibtex_entry_types = {
-    "article" : {"required" : {"author", "title", "journal", "year"},
-        "optional" : {"volume", "number", "pages", "month", "note", "url", "abstract", "ISSN"},
-        "description" : "An article from a journal or magazine", "name" : "Article"
-        },
-    "book" : {"required" : {"author", "title", "publisher", "year"},
-        "optional" : {"editor", "volume", "series", "address", "edition", "month", "note", "url", "abstract", "ISBN"},
-        "description" : "A book with an explicit publisher", "name" : "Book"
-        },
-    "booklet" : {"required" : {"title"},
-        "optional" : {"author", "howpublished", "address", "month", "year", "note", "url"},
-        "description" : "A work that is printed and bound, but without a named publisher or sponsoring institution.", 
-        "name" : "Booklet"
-        },
-    "conference" : {"required" : {"author", "title", "booktitle", "year"},
-        "optional" : {"editor", "pages", "organization", "publisher", "address", "month", "note", "url"},
-        "description" : "The same as inproceedings, included for Scribe (markup language) compatibility.", "name" : "Title"
-        },
-    "inbook" : {"required" : {"author", "title", "chapter", "pages", "year"},
-        "optional" : {"editor", "volume", "series", "address", "edition", "month", "note", "url", "abstract", "ISBN"},
-        "description" : "A part of a book, which may be a chapter (or section or whatever) and/or a range of pages.",
-        "name" : "In book"
-        },
-    "incollection" : {"required" : {"author", "title", "booktitle", "year"},
-        "optional" : {"editor", "pages", "organization", "address", "publisher", "month", "note", "url", "abstract"},
-        "description" : "A part of a book having its own title.",
-        "name" : "In collection"
-        },
-    "inproceedings" : {"required" : {"author", "title", "booktitle", "year"},
-        "optional" : {"editor", "pages", "organization", "address", "publisher", "month", "note", "url", "abstract"},
-        "description" : "An article in a conference proceedings.",
-        "name" : "In proceedings"
-        },
-    "manual" : {"required" : {"title"},
-        "optional" : {"author", "organization", "address", "edition", "month", "year", "note", "url"},
-        "description" : "Technical documentation",
-        "name" : "Manual"
-        },
-    "mastersthesis" : {"required" : {"author", "title", "school", "year"},
-        "optional" : {"address", "month", "note", "url", "abstract"},
-        "description" : "A Masters thesis.",
-        "name" : "Master thesis"
-        },
-    "misc" : {"required" : {},
-        "optional" : {"author", "title", "howpublished", "month", "year", "note", "url"},
-        "description" : "For use when nothing else fits.",
-        "name" : "Misc"
-        },
-    "phdthesis" : {"required" : {"author", "title", "school", "year"},
-        "optional" : {"address", "month", "note", "url", "abstract"},
-        "description" : "A Ph.D. Thesis",
-        "name" : "PhD Thesis"
-        },
-    "proceedings" : {"required" : {"title", "year"},
-        "optional" : {"editor", "publish", "organization", "address", "month", "note", "url"},
-        "description" : " The proceedings of a conference.",
-        "name" : "Proceedings"
-        },
-    "techreport" : {"required" : {"author", "title", "institution", "year"},
-        "optional" : {"type", "number", "address", "month", "note", "url", "abstract"},
-        "description" : "A report published by a school or other institution, usually numbered within a series.",
-        "name" : "Tech report"
-        },
-    "unpublished" : {"required" : {"author", "title", "note"},
-        "optional" : {"month", "year", "url"},
-        "description" : "A document having an author and title, but not formally published.",
-        "name" : "Unpublished"
-        }
-    }
 
     self.errors = [];
     self._replace = {};
@@ -536,11 +653,11 @@ class BibTeXProcessor:
     self.line = entry["line"]
     self.column = entry["column"]
 
-    if not self.bibtex_entry_types.has_key(bibtex_type):
+    if not BIBTEX_TYPES.has_key(bibtex_type):
       self._error("Unsupported entry type '%s'" % bibtex_type)
       return None
 
-    fields = self.bibtex_entry_types[bibtex_type]
+    fields = BIBTEX_TYPES[bibtex_type]
 
     required = fields['required'].copy()
     required.update(self.required)
@@ -576,15 +693,16 @@ class BibTeXProcessor:
 
       new_key = self.renameField(key);
 
-      if self.strict and not self.bibtex_fields.has_key(new_key):
-        self._error("Unknown BibTeX field '%s'" % key)
+      if self.strict and not BIBTEX_FIELDS.has_key(new_key):
+        self._error("Unknown field '%s'" % key)
         error = True
-      elif not self.strict and not self.bibtex_fields.has_key(new_key):
+      elif not self.strict and not BIBTEX_FIELDS.has_key(new_key):
         continue
 
       result[new_key] = self.parseField(new_key, value)
 
     result["@type"] = bibtex_type
+    result["@key"] = bibtex_key
 
     if error:
       return None
@@ -606,15 +724,67 @@ class BibTeXProcessor:
     return None
 
   def decode(self, field, value):
-    if self.bibtex_fields.has_key(field):
-      t = self.bibtex_fields[field]["type"]
+    if BIBTEX_FIELDS.has_key(field):
+      t = BIBTEX_FIELDS[field]["type"]
     else: 
       t = "string"
 
     if t == "string" or t == "text":
       return self._substitute(self._unicode(value)).strip()
+    if t == "number":
+      value = value.strip()
+      try:
+        return str(int(value))
+      except:
+        if value == "":
+          return value
+        else:
+          try:
+            return str(roman_to_int(value))
+          except:
+            return ""
+
+    if t == "range":
+      value = value.strip()
+      m = re.match(r'([0-9]+) *-+ *([0-9]+)', value)
+      if m:
+        return "%s--%s" % (m.group(1), m.group(2))
+      try:
+        return str(int(value))
+      except:
+        if value == "":
+          return value
+        else:
+          try:
+            return str(roman_to_int(value))
+          except:
+            return ""
     elif t == "people":
-      return self._unicode(value).strip()
+      value = self._unicode(value).strip()
+
+      if " and " in value:
+        people_raw = [e.strip() for e in value.split(" and ")]
+      else:
+        people_raw = [e.strip() for e in value.split(",")]
+
+      print people_raw
+
+      people = []
+
+      for person_raw in people_raw:
+        if "," in person_raw:
+          parts = [e.strip() for e in person_raw.split(",")]
+          name = parts[1]
+          surname = parts[0]
+        else:
+          parts = [e.strip() for e in person_raw.split(" ")]
+          name = parts[0]
+          surname = parts[1]
+
+        people.append((surname, name))
+
+      return " and ".join([ "%s, %s" % e for e in people ])
+
     return value.strip()
 
   def _substitute(self, value):

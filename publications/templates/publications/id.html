@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load publication_extras %}
 
 {% block content %}
 	{% for publication in publications %}
@@ -6,8 +7,6 @@
 		<div style="margin-bottom: 30px;">
 		{% include "publications/publication.html" %}<br/>
 		</div>
-		<h1>Reference</h1>
-		<pre lang="bibtex">{{ publication.to_bibtex }}</pre>
 		<h1>Linking</h1>
 		<pre lang="link">&lt;a href="{{ absolute_url }}"&gt;Link&lt;/a&gt;</pre>
 	{% endfor %}

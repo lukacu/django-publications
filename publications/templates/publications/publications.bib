@@ -1,3 +1,6 @@
-{% for publication in publications %}
-{{ publication.to_bibtex }}
-{% endfor %}
+{% load publication_extras %}
+%% {{ title }}
+%% Generated: {% now "SHORT_DATETIME_FORMAT" %}
+
+{% to_bibtex publications %}
+

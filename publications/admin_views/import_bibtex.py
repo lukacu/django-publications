@@ -8,7 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from publications.bibtex import BibTeXParser, BibTeXProcessor
-from publications.models import Publication, Type
+from publications.models import Publication
 from string import split, join
 
 # mapping of months
@@ -26,31 +26,21 @@ MONTHS = {
 	'nov': 11, 'november': 11,
 	'dec': 12, 'december': 12}
 
-def generate_objects(bibliography):
-
-	# publication types
-	types = Type.objects.all()
+def generate_objects(bibliography, update=False):
 
 	publications = []
 	for entry in bibliography:
-		# parse authors
-		authors = split(entry['author'], ' and ')
-		for i in range(len(authors)):
-			author = split(authors[i], ',')
-			author = [author[-1]] + author[:-1]
-			authors[i] = join(author, ' ')
-		authors = join(authors, ', ')
-
 		# add missing keys
-		keys = [
-			'journal',
+		keys = ['journal',
 			'booktitle',
 			'publisher',
 			'url',
 			'doi',
 			'keywords',
 			'note',
-			'month']
+			'month',
+			'abstract',
+			'groups']
 
 		for key in keys:
 			if not entry.has_key(key):
@@ -61,23 +51,9 @@ def generate_objects(bibliography):
 		entry['volume'] = entry.get('volume', None)
 		entry['number'] = entry.get('number', None)
 
-		# determine type
-		type_id = None
-
-		for t in types:
-			if entry['@type'] in t.bibtex_type_list:
-				type_id = t.id
-				break
-
-		if type_id is None:
-			errors.append('Type "' + entry['type'] + '" unknown.')
-			break
-
-		# add publication
-		publications.append(Publication(
-			type_id=type_id,
+		publication = Publication(
+			type=entry['@type'],
 			title=entry['title'],
-			authors=authors,
 			year=entry['year'],
 			month=entry['month'],
 			journal=entry['journal'],
@@ -86,9 +62,29 @@ def generate_objects(bibliography):
 			volume=entry['volume'],
 			number=entry['number'],
 			note=entry['note'],
+			abstract=entry['abstract'],
 			url=entry['url'],
 			doi=entry['doi'],
-			keywords=entry['keywords']))
+			keywords=entry['keywords'])
+
+		people = []
+
+		if entry.has_key("author"):
+			people.extend([("author", name) for name in entry["author"].split(" and ")])
+
+		if entry.has_key("editor"):
+			people.extend([("editor", name) for name in entry["editor"].split(" and ")])
+
+		if len(people) > 0:
+			publication.set_people = people
+
+		if "," in entry["groups"]:
+			publication.set_groups = [g.strip() for g in entry.get('groups', "").split(",")]
+		else:
+			publication.set_groups = [g.strip() for g in entry.get('groups', "").split(" ")]
+
+		# add publication
+		publications.append(publication)
 
 	return publications
 
@@ -119,7 +115,10 @@ def import_bibtex(request):
 				bibliography.append(processed_entry)
 
 		if not errors:
-			publications = generate_objects(bibliography)
+			try:
+				publications = generate_objects(bibliography)
+			except e:
+				errors.append(str(e))
 
 		if not errors and not publications:
 			errors.append('No valid BibTex entries found.')
@@ -131,7 +130,6 @@ def import_bibtex(request):
 				'admin/publications/import_bibtex.html', {
 					'errors': errors,
 					'title': 'Import BibTex',
-					'types': Type.objects.all(),
 					'request': request},
 				RequestContext(request))
 		else:
@@ -156,7 +154,6 @@ def import_bibtex(request):
 		return render_to_response(
 			'admin/publications/import_bibtex.html', {
 				'title': 'Import BibTex',
-				'types': Type.objects.all(),
 				'request': request},
 			RequestContext(request))
 

@@ -44,7 +44,7 @@ class Command(BaseCommand):
     print "Found %d entries" % len(bibliography)
 
     for publication in generate_objects(bibliography):
-      print "Saving %s" % publication.key()
+      print "Saving %s" % publication.title
       publication.save()
 
 
