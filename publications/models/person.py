@@ -9,6 +9,34 @@ from django.utils.encoding import smart_str, force_unicode
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
+#from publications.models import Role
+
+def group_people(people):
+  groups = {}
+
+  for person in people:
+    if groups.has_key(person.surname):
+      groups[person.surname].append(person)
+    else:
+      groups[person.surname] = [person]
+
+  return groups
+
+def merge_group(group):
+  pivot = group[0]
+
+#  for person in group:
+#    if 
+
+  for person in group:
+    if person == pivot:
+      continue
+    roles = Role.objects.filter(person = person)
+    for role in roles:
+      role.person = pivot
+      role.save()
+    person.delete()
+
 
 def parse_person_name(text):
   name = None
@@ -42,10 +70,14 @@ class Person(models.Model):
 
 
   class Meta:
+    verbose_name_plural = 'people'
     app_label = 'publications'
 
   def __unicode__(self):
-    return self.name
+    if self.surname:
+      return self.surname
+    else:
+      return self.display
 
   def identifier(self):
     if self.surname:

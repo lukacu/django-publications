@@ -5,6 +5,7 @@ from publications.models import *
 from string import split, join
 from publications.bibtex import BibTeXParser, BibTeXProcessor
 from publications.admin_views.import_bibtex import generate_objects
+from django.conf import settings
 
 class Command(BaseCommand):
   args = '<bib_file>'
@@ -43,8 +44,15 @@ class Command(BaseCommand):
 
     print "Found %d entries" % len(bibliography)
 
-    for publication in generate_objects(bibliography):
-      print "Saving %s" % publication.title
-      publication.save()
+    if getattr(settings, 'PUBLICATIONS_IMPORT_HANDLER', None):
+      (module, sep, method) = settings.PUBLICATIONS_IMPORT_HANDLER.rpartition(".")
+      handlermodule = __import__(module)
+      if hasattr(handlermodule, method):
+        handler = getattr(handlermodule, method)
+        bibliography = [ handler(b) for b in bibliography ]
+
+#    for publication in generate_objects(bibliography):
+#      print "Saving %s" % publication.title
+#      publication.save()
 
 

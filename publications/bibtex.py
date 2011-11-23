@@ -767,8 +767,6 @@ class BibTeXProcessor:
       else:
         people_raw = [e.strip() for e in value.split(",")]
 
-      print people_raw
-
       people = []
 
       for person_raw in people_raw:

@@ -3,7 +3,7 @@ __author__ = 'Lucas Theis <lucas@theis.io>'
 __docformat__ = 'epytext'
 
 from django.contrib import admin
-from publications.models import Publication, Group, Role
+from publications.models import Publication, Group, Role, Person
 
 class RoleInline(admin.StackedInline):
     model = Role
@@ -30,5 +30,10 @@ class PublicationAdmin(admin.ModelAdmin):
 class GroupAdmin(admin.ModelAdmin):
 	list_display = ('name', 'text')
 
+class PersonAdmin(admin.ModelAdmin):
+	list_display = ('display', 'name', 'surname')
+
+
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Group, GroupAdmin)
+admin.site.register(Person, PersonAdmin)
