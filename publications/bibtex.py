@@ -557,10 +557,10 @@ BIBTEX_FIELDS = {
   "doi" : {"description" : "Digital Object Identifier", "type" : "string"},
   "isbn" : {"description" : "The International Standard Book Number", "type" : "string"},
   "issn" : {"description" : "The International Standard Serial Number. Used to identify a journal.", "type" : "string"},
-  "keywords" : {"description" : "Keywords associated with this entry.", "type" : "string"},
+  "keywords" : {"description" : "Keywords associated with this entry.", "type" : "terms"},
   "owner" : {"description" : "Owner of the entry.", "type" : "string"},
   "timestamp" : {"description" : "Timestamp of the entry.", "type" : "date"},
-  "groups" : {"description" : "Comma-separated list of groups that the entry belongs to.", "type" : "string"}
+  "groups" : {"description" : "Comma-separated list of groups that the entry belongs to.", "type" : "terms"}
 }
 
 BIBTEX_TYPES = {
@@ -782,6 +782,18 @@ class BibTeXProcessor:
         people.append((surname, name))
 
       return " and ".join([ "%s, %s" % e for e in people ])
+    elif t == "terms":
+      value = self._unicode(value).strip()
+      if " and " in value:
+        terms_raw = [e.strip() for e in value.split(" and ")]
+      elif ";" in value:
+        terms_raw = [e.strip() for e in value.split(";")]
+      elif "," in value:
+        terms_raw = [e.strip() for e in value.split(",")]
+      else:
+        terms_raw = [e.strip() for e in value.split(" ")]
+
+      return (', '.join([s.strip() for s in terms_raw]))
 
     return value.strip()
 

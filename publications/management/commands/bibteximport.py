@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 from publications.models import *
 from string import split, join
 from publications.bibtex import BibTeXParser, BibTeXProcessor
-from publications.admin_views.import_bibtex import generate_objects
+from publications.models import generate_publication_objects
 from django.conf import settings
 
 class Command(BaseCommand):
@@ -51,8 +51,8 @@ class Command(BaseCommand):
         handler = getattr(handlermodule, method)
         bibliography = [ handler(b) for b in bibliography ]
 
-#    for publication in generate_objects(bibliography):
-#      print "Saving %s" % publication.title
-#      publication.save()
+    for publication in generate_publication_objects(bibliography):
+      print "Saving %s" % publication.title
+      publication.save()
 
 

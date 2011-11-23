@@ -27,7 +27,7 @@ def keyword(request, keyword):
 	elif getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
 		group = settings.PUBLICATIONS_DEFAULT_GROUP
 	if group:
-		candidates = candidates.filter(groups__name__iexact=group)
+		candidates = candidates.filter(groups__identifier__iexact=group)
 
 	publications = []
 
@@ -91,14 +91,14 @@ def person(request, person_id):
 #		group = settings.PUBLICATIONS_DEFAULT_GROUP
 
 	if group:
-		candidates = candidates.filter(groups__name__iexact=group)
+		candidates = candidates.filter(groups__identifier__iexact=group)
 
 	if 'format' in request.GET:
 		format = request.GET['format']
 	else:
 		format = 'default'
 
-	return render_result(request, candidates, "Publications by %s" % author.display, format, group)
+	return render_result(request, candidates, "Publications by %s" % author.full_name(), format, group)
 
 def year(request, year=None):
 
@@ -115,7 +115,7 @@ def year(request, year=None):
 	elif getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
 		group = settings.PUBLICATIONS_DEFAULT_GROUP
 	if group:
-		candidates = candidates.filter(groups__name__iexact=group)
+		candidates = candidates.filter(groups__identifier__iexact=group)
 
 	if 'format' in request.GET:
 		format = request.GET['format']

@@ -3,11 +3,13 @@ __author__ = 'Lucas Theis <lucas@theis.io>'
 __docformat__ = 'epytext'
 
 from django.contrib import admin
-from publications.models import Publication, Group, Role, Person
+from publications.models import Publication, Group, Role, Person, PersonNaming
 
-class RoleInline(admin.StackedInline):
+class RoleInline(admin.TabularInline):
     model = Role
 
+class NamingInline(admin.TabularInline):
+    model = PersonNaming
 
 class PublicationAdmin(admin.ModelAdmin):
 	list_display = ('type', 'first_author', 'title', 'type', 'year', 'journal_or_book_title')
@@ -20,7 +22,7 @@ class PublicationAdmin(admin.ModelAdmin):
 		("Publishing information", {'fields': 
 			('year', 'month', 'journal', 'book_title', 'publisher', 'volume', 'number', 'pages')}),
 		("Resources", {'fields': 
-			('url', 'code', 'pdf', 'doi')}),
+			('url', 'code', 'file', 'doi')}),
 		("Categoritzation", {'fields': 
 			('keywords', 'public', 'groups')}),
 	)
@@ -28,11 +30,11 @@ class PublicationAdmin(admin.ModelAdmin):
 
 
 class GroupAdmin(admin.ModelAdmin):
-	list_display = ('name', 'text')
+	list_display = ('identifier', 'title', 'public')
 
 class PersonAdmin(admin.ModelAdmin):
-	list_display = ('display', 'name', 'surname')
-
+	list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
+	inlines = [NamingInline,]
 
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Group, GroupAdmin)

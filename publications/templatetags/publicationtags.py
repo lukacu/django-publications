@@ -11,21 +11,10 @@ from re import sub
 
 register = Library()
 
-def get_publication(id):
-	pbl = Publication.objects.filter(pk=int(id))
-
-	if len(pbl) < 1:
-		return ''
-	return get_template('publications/publication.html').render(
-		Context({'publication': pbl[0]}))
-
-register.simple_tag(get_publication)
-
 # Returns bibtex for one or more publications
 def to_bibtex(publications):
 
 	from publications.bibtex import BibTeXFormatter
-	from publications.transcode import unicode_to_ascii
 	bibtex_keys = set()
 
 	import collections
@@ -45,7 +34,7 @@ def to_bibtex(publications):
 			author_identifier = first_author.identifier()
 		else:
 			author_identifier = "UNCREDITED"
-		key_base = unicode_to_ascii(author_identifier).replace("?", "_") + str(publication.year)
+		key_base = author_identifier + str(publication.year)
 
 		char = ord('a')
 		bibtex_key = key_base + chr(char)
