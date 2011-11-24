@@ -166,19 +166,25 @@ def group_people_by_family_name(people):
 
   return groups
 
-def merge_group(group):
-  pivot = group[0]
+def merge_people(people):
+  if len(people) < 2:
+    return
 
-#  for person in group:
-#    if 
+  pivot = people[0]
 
-  for person in group:
+  # Search for pivot element (primitive attempt)
+  for person in people[1:-1]:
+    if person.family_name == pivot.family_name:
+      if len(person.primary_name) > len(pivot.primary_name):
+        pivot = person
+      elif person.primary_name == pivot.primary_name and person.middle_name and not pivot.middle_name:
+        pivot = person
+
+  for person in people:
     if person == pivot:
       continue
-    roles = Role.objects.filter(person = person)
-    for role in roles:
-      role.person = pivot
-      role.save()
+    Role.objects.filter(person = person).update(person = pivot)
+    PersonNaming.objects.filter(person = person).update(person = pivot)
     person.delete()
 
 def determine_file_name(instance, filename):

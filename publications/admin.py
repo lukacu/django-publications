@@ -1,9 +1,19 @@
+# -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
 __license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
 __author__ = 'Lucas Theis <lucas@theis.io>'
 __docformat__ = 'epytext'
 
 from django.contrib import admin
+import publications.models
 from publications.models import Publication, Group, Role, Person, PersonNaming
+
+def merge_people_by_family_name(modeladmin, request, queryset):
+  groups = publications.models.group_people_by_family_name(list(queryset))
+  for fn, group in groups.items():
+    publications.models.merge_people(group)
+
+def merge_people(modeladmin, request, queryset):
+    publications.models.merge_people(list(queryset))
 
 class RoleInline(admin.TabularInline):
     model = Role
@@ -33,8 +43,9 @@ class GroupAdmin(admin.ModelAdmin):
 	list_display = ('identifier', 'title', 'public')
 
 class PersonAdmin(admin.ModelAdmin):
-	list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
-	inlines = [NamingInline,]
+  list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
+  inlines = [NamingInline,]
+  actions = [merge_people, merge_people_by_family_name]
 
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Group, GroupAdmin)

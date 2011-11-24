@@ -1,8 +1,12 @@
 {% load publicationtags %}
 
+<div class="publication_inline {{ publication.type }}">
+<div class="primary_authors">
 {% for author in publication.primary_authors %}
-{% if author.public %}<a href="{% url publications-person person_id=author.pk %}" class="author">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
-{% endfor %}<br />
+<span class="person">
+{% if author.public %}<a href="{% url publications-person person_id=author.pk %}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
+{% endfor %}
+</div>
 <b><a href="{% url publication publication_id=publication.pk %}" class="title">{{ publication.title }}</a></b><br/>
 {% if publication.journal %}
 	<i>{{ publication.journal }}, {{ publication.year }}</i><br />
@@ -22,3 +26,4 @@
 {% if publication.file %}<a class="link" href="{{ MEDIA_URL }}{{ publication.file }}">File</a>,{% endif %}
 {% if publication.doi %}<a class="link" rel="external" href="http://dx.doi.org/{{ publication.doi }}">DOI</a>,{% endif %}
 <a href="{% url publication publication_id=publication.pk %}?format=bibtex">BibTex</a>
+</div>
