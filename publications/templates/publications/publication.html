@@ -16,8 +16,8 @@
 	{{ publication.year }}</i><br/>
 {% endif %}
 {% if publication.keywords %}
-	{% for keyword, keyword_escaped in publication.keywords_escaped %}
-		<a class="keyword" href="{% url publications-keyword keyword=keyword_escaped %}">{{ keyword }}</a>
+	{% for keyword in publication.keywords.all %}
+		<a class="keyword" href="{% url publications-keyword keyword=keyword.slug %}">{{ keyword }}</a>
 	{% endfor %}
 	<br />
 {% endif %}

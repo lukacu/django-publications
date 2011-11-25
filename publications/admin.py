@@ -16,6 +16,9 @@ def merge_people_by_family_name(modeladmin, request, queryset):
 def merge_people(modeladmin, request, queryset):
     publications.models.merge_people(list(queryset))
 
+class MetadataInline(admin.TabularInline):
+    model = Metadata
+
 class RoleInline(admin.TabularInline):
     model = Role
 
@@ -37,7 +40,7 @@ class PublicationAdmin(admin.ModelAdmin):
 		("Categoritzation", {'fields': 
 			('keywords', 'public', 'groups')}),
 	)
-	inlines = [RoleInline,]
+	inlines = [RoleInline, MetadataInline]
 
 
 class GroupAdmin(admin.ModelAdmin):

@@ -17,6 +17,7 @@ from string import ascii_uppercase
 from publications.fields import PagesField
 from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
+from taggit.managers import TaggableManager
 
 # mapping of months
 MONTHS_MAPPING = {
@@ -76,8 +77,7 @@ def generate_publication_objects(bibliography, update=False):
       note=entry['note'],
       abstract=entry['abstract'],
       url=entry['url'],
-      doi=entry['doi'],
-      keywords=entry['keywords'])
+      doi=entry['doi'])
 
     people = []
 
@@ -94,6 +94,9 @@ def generate_publication_objects(bibliography, update=False):
       publication.set_groups = [g.strip() for g in entry.get('groups', "").split(",")]
     else:
       publication.set_groups = [g.strip() for g in entry.get('groups', "").split(" ")]
+
+    if entry.has_key("keywords"):
+      publication.set_keywords = [k.strip().lower() for k in entry['keywords'].split(",")]
 
     if entry.has_key("@file"):
       publication.set_file = entry["@file"]
@@ -318,8 +321,7 @@ class Publication(models.Model):
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True)
-  keywords = models.CharField(max_length=1024, blank=True,
-    help_text='List of keywords separated by commas.')
+  keywords = TaggableManager()
   url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
     help_text='Link to PDF or journal page.')
   code = models.URLField(blank=True, verify_exists=False,
@@ -368,6 +370,11 @@ class Publication(models.Model):
           g.save()
         self.groups.add(g)
 
+    if hasattr(self, "set_keywords"):
+      print self.set_keywords
+      keywords = filter(lambda k : len(k) > 0, self.set_keywords)
+      self.keywords.set(*keywords)
+
     if hasattr(self, "set_file"):
       filename = self.set_file
       if exists(filename):
@@ -389,8 +396,7 @@ class Publication(models.Model):
 
 
   def keywords_escaped(self):
-    return [(keyword.strip(), urlquote_plus(keyword.strip()))
-      for keyword in self.keywords.split(',')]
+    return ", ".join([str(k) for k in self.keywords.all()])
 
   def month_bibtex(self):
     return MONTH_BIBTEX.get(self.month, '')
@@ -453,7 +459,7 @@ class Publication(models.Model):
     if self.month:
       entry["month"] = self.month_bibtex()
     if self.keywords:
-      entry["keywords"] = self.keywords
+      entry["keywords"] = self.keywords_escaped()
     if self.doi:
       entry["doi"] = self.doi
     if self.url:

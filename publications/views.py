@@ -13,12 +13,16 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
+from taggit.models import Tag
 
 def keyword(request, keyword):
 
-	keyword = replace(keyword.lower(), ' ', '+')
+	try:
+		tag = Tag.objects.get(slug = keyword)
+	except ObjectDoesNotExist:
+		raise Http404
 
-	candidates = Publication.objects.filter(keywords__icontains=split(keyword, '+')[0], public=True)
+	candidates = Publication.objects.filter(keywords=tag, public=True)
 
 	group = None
 	if 'group' in request.GET:
@@ -30,17 +34,12 @@ def keyword(request, keyword):
 
 	publications = []
 
-	# todo ... do this with tagging!!!
-	for i, publication in enumerate(candidates):
-		if keyword in [k[1] for k in publication.keywords_escaped()]:
-			publications.append(publication)
-
 	if 'format' in request.GET:
 		format = request.GET['format']
 	else:
 		format = 'default'
 
-	return render_result(request, candidates, "Publications for keyword %s" % keyword, format, group)
+	return render_result(request, candidates, "Publications for keyword %s" % tag.name, format, group)
 
 
 def id(request, publication_id):
