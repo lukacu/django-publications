@@ -15,8 +15,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.http import urlquote_plus
 from string import ascii_uppercase
 from publications.fields import PagesField
-from publications.bibtex import BIBTEX_TYPES
 from os.path import exists, splitext, join, basename
+from publications.orderedmodel import OrderedModel
 
 # mapping of months
 MONTHS_MAPPING = {
@@ -53,13 +53,18 @@ def generate_publication_objects(bibliography, update=False):
       if not entry.has_key(key):
         entry[key] = ''
 
+    try:
+      ptype = PublicationType.objects.get(bibtex_type__contains = entry['@type'])
+    except ObjectDoesNotExist:
+      continue
+
     # map integer fields to integers
     entry['month'] = MONTHS_MAPPING.get(entry['month'].lower(), 0)
     entry['volume'] = entry.get('volume', None)
     entry['number'] = entry.get('number', None)
 
     publication = Publication(
-      type=entry['@type'],
+      type=ptype,
       title=entry['title'],
       year=entry['year'],
       month=entry['month'],
@@ -98,11 +103,6 @@ def generate_publication_objects(bibliography, update=False):
 
   return publications
 
-TYPE_CHOICES = []
-
-for k, v in BIBTEX_TYPES.items():
-  TYPE_CHOICES.append((k, v["name"]))
-
 # names shown in admin area
 MONTH_CHOICES = (
     (1, 'January'),
@@ -135,11 +135,23 @@ MONTH_BIBTEX = {
     12: 'Dec'
   }
 
+class RoleType(OrderedModel):
+  name = models.TextField(_('name'), blank=False)
+  public = models.BooleanField(help_text='The type is publicly visible.', default=True)
+  authorship = models.BooleanField(help_text='The type can be used for authorship related queries for people.', default=True)
+  bibtex_field = models.TextField(_('BibTeX field'), blank=False, unique=True)
 
-ROLE_CHOICES = (
-    ('author', 'Author'),
-    ('editor', 'Editor')
-  )
+  def __unicode__(self):
+    return self.name
+
+class PublicationType(OrderedModel):
+  title = models.TextField(_('title'), blank=False)
+  description = models.TextField(_('title'), blank=False)
+  public = models.BooleanField(help_text='The type is displayed in public listings.', default=True)
+  bibtex_type = models.TextField(_('BibTeX types that translate into this type'), blank=False, unique=True)
+
+  def __unicode__(self):
+    return self.title
 
 class Group(models.Model):
   identifier = models.CharField(_('identifier'), max_length=255)
@@ -266,30 +278,33 @@ class Person(models.Model):
 
   def full_name_reverse(self):
     if self.middle_name:
-      return "%s, %s %s" % (self.primary_name, self.middle_name, self.family_name)
+      return "%s, %s %s" % (self.family_name, self.primary_name, self.middle_name)
     else:
-      return "%s, %s" % (self.primary_name, self.family_name)
+      return "%s, %s" % (self.family_name, self.primary_name)
 
 class PersonNaming(models.Model):
   naming = models.CharField(_('display name'), max_length=255, unique=True)
   person = models.ForeignKey(Person, verbose_name="person")
 
-
-class Role(models.Model):
-  class Meta:
-    ordering = ["role", "sequence"]
-
+class Role(OrderedModel):
   person = models.ForeignKey("Person")
   publication = models.ForeignKey("Publication")
-  role = models.CharField(_('role'), choices=ROLE_CHOICES, max_length=16)
-  sequence = models.IntegerField(blank=True, null=True)
+  role = models.ForeignKey("RoleType", on_delete=models.PROTECT)
 
+class Metadata(models.Model):
+  publication = models.ForeignKey("Publication", verbose_name="publication", editable = False)
+  key = models.CharField(_('key'), max_length=64, blank=False, null=False)
+  value = models.CharField(_('value'), max_length=255, blank=True, null=False)
+
+  class Meta:
+    verbose_name_plural = 'metadata'
+    unique_together = ("publication", "key")
 
 class Publication(models.Model):
   class Meta:
     ordering = ['-year', '-month', '-id']
 
-  type = models.CharField(max_length=64, choices=TYPE_CHOICES)
+  type = models.ForeignKey("PublicationType", on_delete=models.PROTECT)
   date_added = models.DateTimeField(_('date added'), default=datetime.now, editable = False, auto_now_add=True)
   date_modified = models.DateTimeField(_('date modified'), editable = False, auto_now = True, default=datetime.now)
   title = models.CharField(max_length=512)
@@ -329,14 +344,16 @@ class Publication(models.Model):
         role = person[0].strip().lower()
         if name == "":
           continue
-        if not role in [ r[0] for r in ROLE_CHOICES]:
-          continue
-        person = parse_person_name(name)
-        if not person:
-          continue
-        i = i + 1
-        r = Role(person = person, publication = self, role=role, sequence = i)
-        r.save()
+        try:
+          r = RoleType.objects.get(bibtex_field = role)
+          person = parse_person_name(name)
+          if not person:
+            continue
+          i = i + 1
+          r = Role(person = person, publication = self, role=r, order = i)
+          r.save()
+        except ObjectDoesNotExist:
+          pass
 
     if hasattr(self, "set_groups"):
       self.groups.clear()
@@ -379,7 +396,7 @@ class Publication(models.Model):
     return MONTH_BIBTEX.get(self.month, '')
 
   def first_author(self):
-    people = Role.objects.filter(publication=self).order_by("role", "sequence")
+    people = Role.objects.filter(publication=self).order_by("role", "order")
     try:
       return people[0].person
     except IndexError:
@@ -392,7 +409,7 @@ class Publication(models.Model):
       return self.book_title
 
   def primary_authors(self):
-    people = Role.objects.filter(publication = self).order_by("role", "sequence")
+    people = Role.objects.filter(publication = self).order_by("role", "order")
     authors = []
     role = None
     for a in people:
@@ -406,7 +423,19 @@ class Publication(models.Model):
   def to_dictionary(self):
     entry = {}
     entry["title"] = self.title
-    entry["author"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(role="author", publication = self).order_by("sequence") ])
+
+    try:
+      author = RoleType.objects.get(bibtex_field = "author")
+      entry["author"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(role=author, publication = self).order_by("order") ])
+    except ObjectDoesNotExist:
+      pass
+
+    try:
+      editor = RoleType.objects.get(bibtex_field = "editor")
+      entry["editor"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(role=editor, publication = self).order_by("order") ])
+    except ObjectDoesNotExist:
+      pass
+
     entry["year"] = self.year
 
     if self.journal:

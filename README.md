@@ -8,7 +8,7 @@ Requirements
 
 * python >= 2.5.0
 * django >= 1.3.0
-* django-taggit
+* django-taggit >= 0.9.3
 
 The app has been tested with the above versions, but older versions might also work.
 

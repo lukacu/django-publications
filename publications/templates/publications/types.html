@@ -3,8 +3,8 @@
 {% block content %}
 	<h1>{{ title }}</h1>
 	{% include "publications/formats.html" %}
-	{% for type, type_name, publications in types %}
-		<h2>{{ type_name }}</h2>
+	{% for type, publications in types %}
+		<h2>{{ type.name }}</h2>
 		<div{% if not forloop.last %} style="margin-bottom: 30px;"{% endif %}>
 		{% for publication in publications %}
 			<div{% if not forloop.last %} style="margin-bottom: 20px;"{% endif %}>

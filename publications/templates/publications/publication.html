@@ -1,6 +1,6 @@
 {% load publicationtags %}
 
-<div class="publication_inline {{ publication.type }}">
+<div class="publication_inline publication_type_{{ publication.type.pk }}">
 <div class="primary_authors">
 {% for author in publication.primary_authors %}
 <span class="person">

@@ -12,7 +12,6 @@ from string import capwords, replace, split
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from publications.bibtex import BIBTEX_TYPES
 from django.http import Http404
 
 def keyword(request, keyword):
@@ -77,10 +76,6 @@ def person(request, person_id):
 
 	# find publications of this author
 	publications = []
-	types = []
-	
-	for t, d in BIBTEX_TYPES.items():
-		types.append((t, d['name']))
 
 	candidates = Publication.objects.filter(public=True, role__person = author).order_by('-year', '-month', '-id')
 
@@ -135,7 +130,7 @@ def render_result(request, publications, title, format, group):
 		data = list()
 		for publication in publications:
 			entry = publication.to_dictionary()
-			entry["type"] = publication.type
+			entry["type"] = publication.type.pk
 			entry["id"] = publication.pk
 			data.append(entry)
 		return HttpResponse(simplejson.dumps(data), mimetype='text/plain; charset=UTF-8')
@@ -166,9 +161,8 @@ def render_result(request, publications, title, format, group):
 			else:
 				types_dict[publication.type] = [publication]
 		types = []
-		for type_id, type_data in BIBTEX_TYPES.items():
-			if types_dict.has_key(type_id):
-				types.append((type_id, type_data['name'], types_dict[type_id]))
+		for ptype, type_data in types_dict:
+			types.append((ptype, types_dict[type_id]))
 		return render_to_response('publications/types.html', {
 				'types': types,
 				'title': title,

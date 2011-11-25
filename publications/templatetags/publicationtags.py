@@ -26,8 +26,11 @@ def to_bibtex(publications):
 	output = []
 
 	for publication in publications:
+		if not publication.type.bibtex_type:
+			continue
+
 		entry = publication.to_dictionary()
-		entry["@type"] = publication.type
+		entry["@type"] = publication.type.bibtex_type
 
 		first_author = publication.first_author()
 		if first_author:
