@@ -55,7 +55,7 @@ def generate_publication_objects(bibliography, update=False):
         entry[key] = ''
 
     try:
-      ptype = PublicationType.objects.get(bibtex_type__contains = entry['@type'])
+      ptype = PublicationType.objects.get(bibtex_type__iexact = entry['@type'])
     except ObjectDoesNotExist:
       continue
 
@@ -139,26 +139,26 @@ MONTH_BIBTEX = {
   }
 
 class RoleType(OrderedModel):
-  name = models.TextField(_('name'), blank=False)
+  name = models.CharField(_('name'), blank=False, max_length=255)
   public = models.BooleanField(help_text='The type is publicly visible.', default=True)
   authorship = models.BooleanField(help_text='The type can be used for authorship related queries for people.', default=True)
-  bibtex_field = models.TextField(_('BibTeX field'), blank=False, unique=True)
+  bibtex_field = models.CharField(_('BibTeX field'), blank=True, unique=True, max_length=64)
 
   def __unicode__(self):
     return self.name
 
 class PublicationType(OrderedModel):
-  title = models.TextField(_('title'), blank=False)
+  title = models.CharField(_('title'), blank=False, max_length=255)
   description = models.TextField(_('title'), blank=False)
   public = models.BooleanField(help_text='The type is displayed in public listings.', default=True)
-  bibtex_type = models.TextField(_('BibTeX types that translate into this type'), blank=False, unique=True)
+  bibtex_type = models.CharField(_('BibTeX types that translate into this type'), blank=True, unique=True, max_length=64)
 
   def __unicode__(self):
     return self.title
 
 class Group(models.Model):
   identifier = models.CharField(_('identifier'), max_length=255)
-  title = models.TextField(_('title'), blank=True)
+  title = models.CharField(_('title'), blank=True, max_length=255)
   public = models.BooleanField(help_text='Is displayed in group listing.', default=True)
 
   def __unicode__(self):
@@ -289,10 +289,14 @@ class PersonNaming(models.Model):
   naming = models.CharField(_('display name'), max_length=255, unique=True)
   person = models.ForeignKey(Person, verbose_name="person")
 
-class Role(OrderedModel):
+class Role(models.Model):
+  order = models.PositiveIntegerField(editable=False)
   person = models.ForeignKey("Person")
   publication = models.ForeignKey("Publication")
   role = models.ForeignKey("RoleType", on_delete=models.PROTECT)
+
+  def __unicode__(self):
+    return "%s is %s of %s" % (self.person.full_name(), self.role.name, self.publication.title)
 
 class Metadata(models.Model):
   publication = models.ForeignKey("Publication", verbose_name="publication", editable = False)
@@ -302,6 +306,10 @@ class Metadata(models.Model):
   class Meta:
     verbose_name_plural = 'metadata'
     unique_together = ("publication", "key")
+
+  def __unicode__(self):
+    return "%s: %s" % (self.key, self.value)
+
 
 class Publication(models.Model):
   class Meta:
@@ -371,7 +379,6 @@ class Publication(models.Model):
         self.groups.add(g)
 
     if hasattr(self, "set_keywords"):
-      print self.set_keywords
       keywords = filter(lambda k : len(k) > 0, self.set_keywords)
       self.keywords.set(*keywords)
 

@@ -766,6 +766,10 @@ class BibTeXProcessor:
         people_raw = [e.strip() for e in value.split(" and ")]
       else:
         people_raw = [e.strip() for e in value.split(",")]
+        # it is possible that there is only one author with reverse name notation
+        # in this case there are only two elements
+        if len(people_raw) == 2:
+          people_raw = [", ".join(people_raw)]
 
       people = []
 
@@ -776,8 +780,11 @@ class BibTeXProcessor:
           surname = parts[0]
         else:
           parts = [e.strip() for e in person_raw.split(" ")]
-          name = parts[0]
-          surname = parts[1]
+          if len(parts) > 2:
+            name = " ".join(parts[0:-1])
+          else:
+            name = parts[0]
+          surname = parts[-1]
 
         people.append((surname, name))
 

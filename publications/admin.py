@@ -48,6 +48,7 @@ class GroupAdmin(admin.ModelAdmin):
 
 class PersonAdmin(admin.ModelAdmin):
   list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
+  list_display_links = ('primary_name', 'family_name',)
   inlines = [NamingInline,]
   actions = [merge_people, merge_people_by_family_name]
 

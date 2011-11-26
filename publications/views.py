@@ -124,7 +124,6 @@ def year(request, year=None):
 
 
 def render_result(request, publications, title, format, group):
-	print format
 	if format == "json":
 		data = list()
 		for publication in publications:

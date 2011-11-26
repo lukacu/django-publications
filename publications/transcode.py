@@ -2363,7 +2363,9 @@ MAPPING = [(u'\u2993', '&lt;\\kern-0.58em(', '?', True) ,
 import re
 
 def tex_to_unicode(text):
-  text = re.sub("{\\\\([\"'\\^vukc]) +([a-zA-Z])}", '\\\\\\1{\\2}', text)
+  # first unify different TeX notations for some characters
+  text = re.sub("{\\\\([\"'\\^vrukc]) +([a-zA-Z])}", '\\\\\\1{\\2}', text)
+  text = re.sub("\\\\([\"'\\^vrukc])([a-zA-Z])", '\\\\\\1{\\2}', text)
   if not isinstance(text, unicode):
     text = unicode(text, "utf-8")
   for m in MAPPING:
