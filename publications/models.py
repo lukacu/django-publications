@@ -357,7 +357,6 @@ class Publication(models.Model):
       i = 0
       Role.objects.filter(publication = self).delete()
       for person in self.set_people:
-        print person
         name = person[1].strip()
         if person[0]:
           role = person[0].strip().lower()
@@ -390,18 +389,17 @@ class Publication(models.Model):
         self.groups.add(g)
 
     if hasattr(self, "set_metadata"):
-      self.metadata.clear()
+      Metadata.objects.filter(publication = self).delete()
       for key, value in self.set_metadata.items():
         key = key.strip()
         if key == "":
           continue
         try:
-          m = Metadata.objects.get(key = key)
+          m = Metadata.objects.get(key = key, publication = self)
           m.value = value
         except ObjectDoesNotExist:
-          m = Metadata(key=key, value = value)
+          m = Metadata(key=key, value = value, publication = self)
         m.save()
-        self.metadata.add(m)
 
     if hasattr(self, "set_keywords"):
       keywords = filter(lambda k : len(k) > 0, self.set_keywords)

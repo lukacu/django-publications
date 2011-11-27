@@ -49,18 +49,18 @@ def id(request, publication_id):
 		format = request.GET['format']
 	else:
 		format = 'default'
-
 	if format == "json":
 		data = list()
 		for publication in publications:
 			entry = publication.to_dictionary()
 			entry["pubtype"] = publication.type.bibtex_type
 			data.append(entry)
-		return HttpResponse(simplejson.dumps(data), mimetype='text/plain; charset=UTF-8')
+		return HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
+ 
 	elif format == 'bibtex':
 		return render_to_response('publications/publications.bib', {
 				'publications': publications
-			}, context_instance=RequestContext(request), mimetype='text/plain; charset=UTF-8')
+			}, context_instance=RequestContext(request), mimetype='application/x-bibtex; charset=UTF-8')
 	else:
 		absolute_url = request.build_absolute_uri(reverse("publication", kwargs={"publication_id" : publication_id}))
 		return render_to_response('publications/id.html', {
@@ -131,14 +131,14 @@ def render_result(request, publications, title, format, group):
 			entry["type"] = publication.type.pk
 			entry["id"] = publication.pk
 			data.append(entry)
-		return HttpResponse(simplejson.dumps(data), mimetype='text/plain; charset=UTF-8')
+		return HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
 	elif format == 'bibtex':
 		return render_to_response('publications/publications.bib', {
 				'title': title,
 				'publications': publications,
 				'format': format,
 				'group': group
-			}, context_instance=RequestContext(request), mimetype='text/plain; charset=UTF-8')
+			}, context_instance=RequestContext(request), mimetype='application/x-bibtex; charset=UTF-8')
 	elif format == 'annual':
 		years = []
 		for publication in publications:
