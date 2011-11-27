@@ -19,7 +19,7 @@ Installation
 
 2) Add the publications app to your settings.py.
 
-3) Create publications folder in your media folder.
+3) Create publications folder in your media folder (used for storing files).
 
 2) Add the following to your project's `urls.py`:
 
@@ -29,6 +29,13 @@ Installation
 3) Run `python <yourproject>/manage.py syncdb`
 
 Customization
+-------------
+
+There are some aspects of this app that can be costumized using your `settings.py` file:
+
+* TODO
+
+Documentation
 -------------
 
 TODO

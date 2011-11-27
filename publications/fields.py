@@ -1,33 +1,14 @@
+# -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
 __license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
 __author__ = 'Lucas Theis <lucas@theis.io>'
 __docformat__ = 'epytext'
 
+import re
 from django import forms
 from django.forms import widgets
 from django.db import models
-
-class PagesWidget(widgets.MultiWidget):
-	def __init__(self, *args, **kwargs):
-		attrs = {'style': 'width: 40px; text-align: center;'}
-		forms.widgets.MultiWidget.__init__(self,
-			[widgets.TextInput(attrs), widgets.TextInput(attrs)], *args, **kwargs)
-
-
-	def format_output(self, rendered_widgets):
-		to = ' <span style="vertical-align: middle;">to</span> '
-		return rendered_widgets[0] + to + rendered_widgets[1]
-
-
-	def decompress(self, value):
-		if value:
-			values = value.split('-')
-
-			if len(values) > 1:
-				return values
-			if len(values) > 0:
-				return [values[0], values[0]]
-		return [None, None]
-
+from publications.widgets import PagesWidget, PeopleWidget
+from publications.models import RoleType
 
 class PagesForm(forms.MultiValueField):
 	widget = PagesWidget
@@ -36,7 +17,6 @@ class PagesForm(forms.MultiValueField):
 		forms.MultiValueField.__init__(self, [
 			forms.IntegerField(),
 			forms.IntegerField()], *args, **kwargs)
-
 
 	def compress(self, data_list):
 		if data_list:
@@ -59,3 +39,32 @@ class PagesField(models.Field):
 
 	def get_internal_type(self):
 		return 'CharField'
+
+class PeopleField(forms.CharField):
+
+  widget = PeopleWidget(attrs={'size':'100'})
+
+  def to_python(self, value):
+    "Normalize data to a list of touples."
+
+    # Return an empty list if no input was given.
+    if not value:
+        return []
+
+    people = []
+    for person in value.split(','):
+      m = re.match("([^\\(]+)\\(([^\\)]+)\\)", person.strip(), re.U)
+      if m:
+        people.append((m.group(2).strip(), m.group(1).strip()))
+      else:
+        people.append((None, person.strip()))
+    print people
+    return people
+
+  def validate(self, value):
+    # TODO: better validation
+    # Use the parent's handling of required fields, etc.
+    super(PeopleField, self).validate(value)
+
+
+

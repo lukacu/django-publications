@@ -14,7 +14,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.http import urlquote_plus
 from string import ascii_uppercase
-from publications.fields import PagesField
 from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
 from taggit.managers import TaggableManager
@@ -101,10 +100,17 @@ def generate_publication_objects(bibliography, update=False):
     if entry.has_key("@file"):
       publication.set_file = entry["@file"]
 
+    if entry.has_key("@meta") and type(entry["@meta"]) == dict:
+      publication.set_metadata = entry["@meta"]
+
     # add publication
     publications.append(publication)
 
   return publications
+
+
+DEFAULT_PERSON_ROLE = "author"
+PROTECTED_PERSON_ROLES = ["author", "editor"]
 
 # names shown in admin area
 MONTH_CHOICES = (
@@ -188,7 +194,7 @@ def merge_people(people):
   pivot = people[0]
 
   # Search for pivot element (primitive attempt)
-  for person in people[1:-1]:
+  for person in people[1:]:
     if person.family_name == pivot.family_name:
       if len(person.primary_name) > len(pivot.primary_name):
         pivot = person
@@ -225,9 +231,9 @@ def parse_person_name(text):
     primary_name = parts[0]
     if len(parts) > 2:
       middle_name = parts[1]
-      family_name = " ".join(parts[2:-1])
+      family_name = " ".join(parts[2:])
     else:
-      family_name = " ".join(parts[1:-1])
+      family_name = " ".join(parts[1:])
 
   if middle_name:
     naming =  "%s %s %s" % (primary_name, middle_name, family_name)
@@ -310,6 +316,7 @@ class Metadata(models.Model):
   def __unicode__(self):
     return "%s: %s" % (self.key, self.value)
 
+from publications.fields import PagesField
 
 class Publication(models.Model):
   class Meta:
@@ -350,8 +357,12 @@ class Publication(models.Model):
       i = 0
       Role.objects.filter(publication = self).delete()
       for person in self.set_people:
+        print person
         name = person[1].strip()
-        role = person[0].strip().lower()
+        if person[0]:
+          role = person[0].strip().lower()
+        else:
+          role = DEFAULT_PERSON_ROLE
         if name == "":
           continue
         try:
@@ -377,6 +388,20 @@ class Publication(models.Model):
           g = Group(identifier=group)
           g.save()
         self.groups.add(g)
+
+    if hasattr(self, "set_metadata"):
+      self.metadata.clear()
+      for key, value in self.set_metadata.items():
+        key = key.strip()
+        if key == "":
+          continue
+        try:
+          m = Metadata.objects.get(key = key)
+          m.value = value
+        except ObjectDoesNotExist:
+          m = Metadata(key=key, value = value)
+        m.save()
+        self.metadata.add(m)
 
     if hasattr(self, "set_keywords"):
       keywords = filter(lambda k : len(k) > 0, self.set_keywords)
@@ -420,6 +445,16 @@ class Publication(models.Model):
       return self.journal
     else:
       return self.book_title
+
+
+  def people_as_string(self):
+    roles = Role.objects.filter(publication = self).order_by("role__order", "order")
+
+    people = []
+    for role in roles:
+      people.append("%s (%s)" % (role.person.full_name(), role.role.name))
+
+    return ", ".join(people)
 
   def primary_authors(self):
     people = Role.objects.filter(publication = self).order_by("role", "order")
