@@ -42,8 +42,8 @@ def keyword(request, keyword):
 	return render_result(request, candidates, "Publications for keyword %s" % tag.name, format, group)
 
 
-def id(request, publication_id):
-	publications = Publication.objects.filter(pk=publication_id)
+def id(request, publication_id, slug):
+	publication = Publication.objects.get(pk=publication_id)
 
 	if 'format' in request.GET:
 		format = request.GET['format']
@@ -51,7 +51,7 @@ def id(request, publication_id):
 		format = 'default'
 	if format == "json":
 		data = list()
-		for publication in publications:
+		for publication in [publication]:
 			entry = publication.to_dictionary()
 			entry["pubtype"] = publication.type.bibtex_type
 			data.append(entry)
@@ -59,15 +59,14 @@ def id(request, publication_id):
  
 	elif format == 'bibtex':
 		return render_to_response('publications/publications.bib', {
-				'publications': publications
+				'publications': [publication]
 			}, context_instance=RequestContext(request), mimetype='application/x-bibtex; charset=UTF-8')
 	else:
-		absolute_url = request.build_absolute_uri(reverse("publication", kwargs={"publication_id" : publication_id}))
 		return render_to_response('publications/id.html', {
-				'publications': publications, 'absolute_url' : absolute_url
+				'publication': publication
 			}, context_instance=RequestContext(request))
 
-def person(request, person_id):
+def person(request, person_id, slug):
 	try:
 		author = Person.objects.get(pk = person_id)
 	except ObjectDoesNotExist:

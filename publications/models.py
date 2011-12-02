@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models.signals import post_init
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import slugify
 from django.core.files import File
 from django.utils.encoding import smart_str, force_unicode
 from django.utils.functional import curry
@@ -145,6 +146,7 @@ MONTH_BIBTEX = {
   }
 
 class RoleType(OrderedModel):
+  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
   name = models.CharField(_('name'), blank=False, max_length=255)
   public = models.BooleanField(help_text='The type is publicly visible.', default=True)
   authorship = models.BooleanField(help_text='The type can be used for authorship related queries for people.', default=True)
@@ -154,6 +156,7 @@ class RoleType(OrderedModel):
     return self.name
 
 class PublicationType(OrderedModel):
+  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
   title = models.CharField(_('title'), blank=False, max_length=255)
   description = models.TextField(_('title'), blank=False)
   public = models.BooleanField(help_text='The type is displayed in public listings.', default=True)
@@ -291,6 +294,10 @@ class Person(models.Model):
     else:
       return "%s, %s" % (self.family_name, self.primary_name)
 
+  def get_absolute_url(self):
+    return reverse("publications-person", kwargs={"person_id" : self.id, "slug" : slugify(self.full_name()) })
+
+
 class PersonNaming(models.Model):
   naming = models.CharField(_('display name'), max_length=255, unique=True)
   person = models.ForeignKey(Person, verbose_name="person")
@@ -427,6 +434,9 @@ class Publication(models.Model):
 
   def keywords_escaped(self):
     return ", ".join([str(k) for k in self.keywords.all()])
+
+  def get_absolute_url(self):
+    return reverse("publication", kwargs={"publication_id" : self.id, "slug" : slugify(self.title) })
 
   def month_bibtex(self):
     return MONTH_BIBTEX.get(self.month, '')

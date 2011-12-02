@@ -2,12 +2,10 @@
 {% load publicationtags %}
 
 {% block content %}
-	{% for publication in publications %}
-		<h1>Publication</h1>
-		<div style="margin-bottom: 30px;">
-		{% include "publications/publication.html" %}<br/>
-		</div>
-		<h1>Linking</h1>
-		<pre lang="link">&lt;a href="{{ absolute_url }}"&gt;Link&lt;/a&gt;</pre>
-	{% endfor %}
+<h1>Publication</h1>
+<div style="margin-bottom: 30px;">
+{% include "publications/publication.html" %}<br/>
+</div>
+<h1>Linking</h1>
+<pre lang="link">&lt;a href="{{ publication.get_absolute_url }}"&gt;Link&lt;/a&gt;</pre>
 {% endblock %}
