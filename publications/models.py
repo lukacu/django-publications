@@ -1,6 +1,6 @@
-#!/usr/bin/python
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
 
+import os
 import django
 from datetime import datetime
 from django.db import models
@@ -212,14 +212,23 @@ def merge_people(people):
     person.delete()
 
 def determine_file_name(instance, filename):
+  p = "%016x" % instance.pk
+  path = "publications"
+
+  for i in xrange(0, len(p)-2, 2):
+    path = join(path, p[i:i+2])
+
+  if not exists(join(settings.MEDIA_ROOT, path)):
+    os.makedirs(join(settings.MEDIA_ROOT, path))
+
   if not instance.pk:
     return join("publications", basename(filename))
   else:
     name, ext = splitext(filename)
     if ext == '':
-      return join("publications", "%d" % instance.pk)
+      return join(path, p[-2:])
     else:
-      return join("publications", "%d%s" % (instance.pk, ext))
+      return join(path, "%s%s" % (p[-2:], ext))
 
 def parse_person_name(text):
   primary_name = None
@@ -343,7 +352,7 @@ class Publication(models.Model):
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True)
-  keywords = TaggableManager()
+  keywords = TaggableManager(blank=True)
   url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
     help_text='Link to PDF or journal page.')
   code = models.URLField(blank=True, verify_exists=False,
@@ -436,7 +445,8 @@ class Publication(models.Model):
     return ", ".join([str(k) for k in self.keywords.all()])
 
   def get_absolute_url(self):
-    return reverse("publication", kwargs={"publication_id" : self.id, "slug" : slugify(self.title) })
+    slug = slugify(self.__unicode__())
+    return reverse("publication", kwargs={"publication_id" : self.id, "slug" : slug })
 
   def month_bibtex(self):
     return MONTH_BIBTEX.get(self.month, '')

@@ -3,6 +3,10 @@ __license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
 __author__ = 'Luka Cehovin <luka.cehovin@gmail.com>'
 __docformat__ = 'epytext'
 
+import urlparse
+from django.template.defaulttags import URLNode, url
+from django.contrib.sites.models import Site
+from django.conf import settings
 from django.template import Library, Node, Context, RequestContext
 from django.template.loader import get_template
 from django.utils.html import escape
@@ -10,11 +14,34 @@ from django.utils.safestring import mark_safe
 from django.template import loader
 from django import template
 from publications.models import Publication
-from re import sub
 
 register = Library()
 
-class RenderPublication(template.Node):
+class UrlNode(template.Node):
+  def __init__(self, path=None):
+    self.variable = template.Variable(path)
+
+  def render(self, context):
+    try:
+      path = self.variable.resolve(context)
+    except template.VariableDoesNotExist:
+      return ''
+    protocol = getattr(settings, "PROTOCOL", "http")
+    domain = Site.objects.get_current().domain
+    port = getattr(settings, "PORT", "")
+    if port:
+        assert port.startswith(":"), "The PORT setting must have a preceeding ':'."
+    return "%s://%s%s%s" % (protocol, domain, port, path)
+
+@register.tag
+def absolute_url(parser, token):
+  path = None
+  bits = token.split_contents()
+  if len(bits) >= 2:
+    path = bits[1]
+  return UrlNode(path)
+
+class RenderPublicationInline(template.Node):
   def __init__(self, entry, templ = 'publication'):
     self.variable = template.Variable(entry)
     self.template = templ
@@ -22,26 +49,29 @@ class RenderPublication(template.Node):
   def render(self, context):
     try:
       entry = self.variable.resolve(context)
-      ft = entry.type.pk
+      ft = entry.type.identifier
       tt = self.template
       try:
-        return loader.render_to_string("publications/%s_%s.html" % (tt, ft), {'publication' : entry}, context)
+        return loader.render_to_string("publications/inline_%s_%s.html" % (tt, ft), {'publication' : entry}, context)
       except loader.TemplateDoesNotExist:
         try:
-          return loader.render_to_string("publications/%s.html" % tt, {'publication' : entry}, context)
+          return loader.render_to_string("publications/inline_%s.html" % tt, {'publication' : entry}, context)
         except loader.TemplateDoesNotExist:
-          return loader.render_to_string("publications/publication.html", {'publication' : entry}, context)
+          return loader.render_to_string("publications/inline.html", {'publication' : entry}, context)
     except template.VariableDoesNotExist:
       return ''
 
 @register.tag
-def render_publication(parser, token):
+def publication_inline(parser, token):
   try:
     tag_name, variable, templ = token.split_contents()
+    return RenderPublicationInline(variable, templ)
   except ValueError:
-    raise template.TemplateSyntaxError, "%r tag requires two arguments argument" % token.contents.split()[0]
-
-  return RenderPublication(variable, templ)
+    try:
+      tag_name, variable = token.split_contents()
+      return RenderPublicationInline(variable)
+    except ValueError:
+      raise template.TemplateSyntaxError, "%r tag requires at least one argument argument" % token.contents.split()[0]
 
 # Returns bibtex for one or more publications
 def to_bibtex(publications):

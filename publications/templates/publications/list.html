@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-
+{% load publicationtags %}
 {% block content %}
 	<h1>{{ title }}</h1>
 	{% include "publications/formats.html" %}
 	{% for publication in publications %}
 		<div{% if not forloop.last %} style="margin-bottom: 20px;"{% endif %}>
-			{% include "publications/publication.html" %}
+			{% publication_inline publication %}
 		</div>
 	{% endfor %}
 {% endblock %}

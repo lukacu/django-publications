@@ -9,7 +9,7 @@ import publications
 
 urlpatterns = patterns('',
 	url(r'^$', 'publications.views.year', name='publications'),
-	url(r'^(?P<publication_id>\d+)/(?P<slug>.*)$', 'publications.views.id', name='publication'),
+	url(r'^(?P<publication_id>\d+)/(?P<slug>.*)$', 'publications.views.publication', name='publication'),
 	url(r'^year/(?P<year>\d+)/$', 'publications.views.year', name='publications-year'),
 	url(r'^keyword/(?P<keyword>.+)/$', 'publications.views.keyword', name='publications-keyword'),
 	url(r'^person/(?P<person_id>\d+)/(?P<slug>.*)$', 'publications.views.person', name='publications-person'),
