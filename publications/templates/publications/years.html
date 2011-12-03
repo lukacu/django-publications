@@ -5,12 +5,12 @@
 	{% include "publications/formats.html" %}
 	{% for year, publications in years %}
 		<h2><a href="{% url publications-year year=year %}">{{ year }}</a></h2>
-		<div{% if not forloop.last %} style="margin-bottom: 30px;"{% endif %}>
+		<ul class="order_years publications year_{{ year }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
 		{% for publication in publications %}
-			<div{% if not forloop.last %} style="margin-bottom: 20px;"{% endif %}>
+			<li class="{% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %} {% cycle 'odd' 'even' %}">
 				{% publication_inline publication %}
-			</div>
+			</li>
 		{% endfor %}
-		</div>
+		</ul>
 	{% endfor %}
 {% endblock %}

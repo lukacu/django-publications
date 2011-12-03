@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-
+{% load publicationtags %}
 {% block content %}
 	<h1>{{ title }}</h1>
 	{% include "publications/formats.html" %}
 	{% for type, publications in types %}
-		<h2>{{ type.name }}</h2>
-		<div{% if not forloop.last %} style="margin-bottom: 30px;"{% endif %}>
+		<h2>{{ type.title }}</h2>
+		<ul class="order_years publications type_{{ type.identifier }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
 		{% for publication in publications %}
-			<div{% if not forloop.last %} style="margin-bottom: 20px;"{% endif %}>
-				{% include "publications/publication.html" %}
-			</div>
+			<li class="{% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %} {% cycle 'odd' 'even' %}">
+				{% publication_inline publication %}
+			</li>
 		{% endfor %}
-		</div>
+		</ul>
 	{% endfor %}
 {% endblock %}

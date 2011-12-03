@@ -26,42 +26,45 @@ a {
 	color: #999;
 }
 
-a.bibtex_link {
-	line-height: 24pt;
+ul.formats {
 	display: block;
 	float: right;
-	vertical-align: middle;
 }
 
-a.author, a.title {
+ul.formats li {
+	display: inline-block;
+	
+}
+
+ul.publications {
+	padding: 0;
+}
+
+ul.publications li {
+	list-style-type: none;
+	margin: 0 0 20px 0;
+}
+
+.publication_inline .title {
 	color: black;
+	font-weight: bold;
+	font-size: 105%;
 }
 
 a.keyword {
-	color: #777;
+	color: black;
 	background: #ddd;
-	padding: 2px 4px;
-	font-size: 9pt;
-	line-height: 18pt;
-	text-shadow: #eee 0px 1px 0px;
-
-	border-bottom: 1px solid #aaa;
-	border-right: 1px solid #ccc;
-
+	padding: 2px 6px;
+	font-size: 9px;
 	border-radius: 4px;
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
 }
 
 a.keyword:hover {
-	color: #666;
-	background: #ccc;
+	color: black;
+	background: #aaa;
 }
 
-pre {
-	white-space: pre-wrap;
-	white-space: -moz-pre-wrap !important;
-	white-space: -pre-wrap;
-	white-space: -o-pre-wrap;
-	word-wrap: break-word;
+tt.markup {
+	background: #ddd;
+	padding: 10px;
 }

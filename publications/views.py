@@ -166,8 +166,8 @@ def render_result(request, publications, title, format, group):
       else:
         types_dict[publication.type] = [publication]
     types = []
-    for ptype, type_data in types_dict:
-      types.append((ptype, types_dict[type_id]))
+    for ptype, type_data in types_dict.items():
+      types.append((ptype, types_dict[ptype]))
     return render_to_response('publications/types.html', {
         'types': types,
         'title': title,

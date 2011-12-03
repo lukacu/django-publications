@@ -27,7 +27,6 @@
 	{% for keyword in publication.keywords.all %}
 		<a class="keyword" href="{% url publications-keyword keyword=keyword.slug %}">{{ keyword }}</a>
 	{% endfor %}
-	<br />
 </div>
 {% endif %}
 <h2>Resources</h2>
@@ -40,8 +39,8 @@
 </ul>
 </p>
 <h2>Linking</h2>
-<p>
-<tt lang="link">&lt;a href="{% absolute_url publication.get_absolute_url %}"&gt;{{ publication.title }}&lt;/a&gt;</tt>
+<p class="linking">
+<tt lang="link" class="markup">&lt;a href="{% absolute_url publication.get_absolute_url %}"&gt;{{ publication.title }}&lt;/a&gt;</tt>
 </p>
 </div>
 {% endblock %}
