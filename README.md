@@ -22,7 +22,6 @@ Installation
 3) Add the following to your project's `urls.py`:
 
 	url(r'^publications/', include('publications.urls')),
-	url(r'^admin/publications/publication/import_bibtex/$', 'publications.admin_views.import_bibtex')
 
 4) Run `python <yourproject>/manage.py syncdb` and `python <yourproject>/manage.py collectstatic`
 
