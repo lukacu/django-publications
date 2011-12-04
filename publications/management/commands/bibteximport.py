@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 from publications.models import *
 from string import split, join
 from publications.bibtex import BibTeXParser, BibTeXProcessor
-from publications.models import generate_publication_objects
+from publications.models import Import
 from django.conf import settings
 
 class Command(BaseCommand):
@@ -42,17 +42,10 @@ class Command(BaseCommand):
         raise CommandError("Validation errors")
       bibliography.append(entry)
 
-    print "Found %d entries" % len(bibliography)
+    print "Adding %d entries to import queue" % len(bibliography)
 
-    if getattr(settings, 'PUBLICATIONS_IMPORT_HANDLER', None):
-      (module, sep, method) = settings.PUBLICATIONS_IMPORT_HANDLER.rpartition(".")
-      handlermodule = __import__(module)
-      if hasattr(handlermodule, method):
-        handler = getattr(handlermodule, method)
-        bibliography = [ handler(b) for b in bibliography ]
-
-    for publication in generate_publication_objects(bibliography):
-      print "Saving %s" % publication.title
-      publication.save()
+    for publication in bibliography:
+      i = Import(title = publication["title"], data = publication, source = "bibtex")
+      i.save()
 
 

@@ -12,12 +12,47 @@ from django.core.files import File
 from django.utils.encoding import smart_str, force_unicode
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.http import urlquote_plus
 from string import ascii_uppercase
 from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
 from taggit.managers import TaggableManager
+
+DEFAULT_PERSON_ROLE = "author"
+PROTECTED_PERSON_ROLES = ["author", "editor"]
+
+# names shown in admin area
+MONTH_CHOICES = (
+    (1, 'January'),
+    (2, 'February'),
+    (3, 'March'),
+    (4, 'April'),
+    (5, 'May'),
+    (6, 'June'),
+    (7, 'July'),
+    (8, 'August'),
+    (9, 'September'),
+    (10, 'October'),
+    (11, 'November'),
+    (12, 'December')
+  )
+
+# abbreviations used in BibTex
+MONTH_BIBTEX = {
+    1: 'Jan',
+    2: 'Feb',
+    3: 'Mar',
+    4: 'Apr',
+    5: 'May',
+    6: 'Jun',
+    7: 'Jul',
+    8: 'Aug',
+    9: 'Sep',
+    10: 'Oct',
+    11: 'Nov',
+    12: 'Dec'
+  }
 
 # mapping of months
 MONTHS_MAPPING = {
@@ -109,76 +144,6 @@ def generate_publication_objects(bibliography, update=False):
 
   return publications
 
-
-DEFAULT_PERSON_ROLE = "author"
-PROTECTED_PERSON_ROLES = ["author", "editor"]
-
-# names shown in admin area
-MONTH_CHOICES = (
-    (1, 'January'),
-    (2, 'February'),
-    (3, 'March'),
-    (4, 'April'),
-    (5, 'May'),
-    (6, 'June'),
-    (7, 'July'),
-    (8, 'August'),
-    (9, 'September'),
-    (10, 'October'),
-    (11, 'November'),
-    (12, 'December')
-  )
-
-# abbreviations used in BibTex
-MONTH_BIBTEX = {
-    1: 'Jan',
-    2: 'Feb',
-    3: 'Mar',
-    4: 'Apr',
-    5: 'May',
-    6: 'Jun',
-    7: 'Jul',
-    8: 'Aug',
-    9: 'Sep',
-    10: 'Oct',
-    11: 'Nov',
-    12: 'Dec'
-  }
-
-class RoleType(OrderedModel):
-  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
-  name = models.CharField(_('name'), blank=False, max_length=255)
-  public = models.BooleanField(help_text='The type is publicly visible.', default=True)
-  authorship = models.BooleanField(help_text='The type can be used for authorship related queries for people.', default=True)
-  bibtex_field = models.CharField(_('BibTeX field'), blank=True, unique=True, max_length=64)
-
-  def __unicode__(self):
-    return self.name
-
-class PublicationType(OrderedModel):
-  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
-  title = models.CharField(_('title'), blank=False, max_length=255)
-  description = models.TextField(_('title'), blank=False)
-  public = models.BooleanField(help_text='The type is displayed in public listings.', default=True)
-  bibtex_type = models.CharField(_('BibTeX types that translate into this type'), blank=True, unique=True, max_length=64)
-
-  def __unicode__(self):
-    return self.title
-
-class Group(models.Model):
-  identifier = models.CharField(_('identifier'), max_length=255)
-  title = models.CharField(_('title'), blank=True, max_length=255)
-  public = models.BooleanField(help_text='Is displayed in group listing.', default=True)
-
-  def __unicode__(self):
-    return self.title
-
-  def save(self, *args, **kwargs):
-    if not self.title:
-      self.title = self.identifier
-    self.identifier = self.identifier.lower().replace(" ", "")
-    super(Group, self).save(*args, **kwargs)
-
 def group_people_by_family_name(people):
   groups = {}
 
@@ -247,6 +212,11 @@ def parse_person_name(text):
     else:
       family_name = " ".join(parts[1:])
 
+  return (primary_name, middle_name, family_name)
+
+def generate_person_object(text):
+  (primary_name, middle_name, family_name) = parse_person_name(text)
+
   if middle_name:
     naming =  "%s %s %s" % (primary_name, middle_name, family_name)
   else:
@@ -260,6 +230,54 @@ def parse_person_name(text):
     p.save()
     return p
 
+def find_person_object(text):
+  (primary_name, middle_name, family_name) = parse_person_name(text)
+
+  if middle_name:
+    naming =  "%s %s %s" % (primary_name, middle_name, family_name)
+  else:
+    naming = "%s %s" % (primary_name, family_name)
+
+  try:
+    naming = PersonNaming.objects.get(naming = naming)
+    return naming.person
+  except ObjectDoesNotExist:
+    namings = PersonNaming.objects.filter(naming__icontains = family_name)
+    return list(namings)
+
+class RoleType(OrderedModel):
+  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
+  name = models.CharField(_('name'), blank=False, max_length=255)
+  public = models.BooleanField(help_text='The type is publicly visible.', default=True)
+  authorship = models.BooleanField(help_text='The type can be used for authorship related queries for people.', default=True)
+  bibtex_field = models.CharField(_('BibTeX field'), blank=True, unique=True, max_length=64)
+
+  def __unicode__(self):
+    return self.name
+
+class PublicationType(OrderedModel):
+  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
+  title = models.CharField(_('title'), blank=False, max_length=255)
+  description = models.TextField(_('title'), blank=False)
+  public = models.BooleanField(help_text='The type is displayed in public listings.', default=True)
+  bibtex_type = models.CharField(_('BibTeX types that translate into this type'), blank=True, unique=True, max_length=64)
+
+  def __unicode__(self):
+    return self.title
+
+class Group(models.Model):
+  identifier = models.CharField(_('identifier'), max_length=255)
+  title = models.CharField(_('title'), blank=True, max_length=255)
+  public = models.BooleanField(help_text='Is displayed in group listing.', default=True)
+
+  def __unicode__(self):
+    return self.title
+
+  def save(self, *args, **kwargs):
+    if not self.title:
+      self.title = self.identifier
+    self.identifier = self.identifier.lower().replace(" ", "")
+    super(Group, self).save(*args, **kwargs)
 
 class Person(models.Model):
   primary_name = models.CharField(_('first name'), max_length=100, blank=False, null=False)
@@ -311,6 +329,9 @@ class PersonNaming(models.Model):
   naming = models.CharField(_('display name'), max_length=255, unique=True)
   person = models.ForeignKey(Person, verbose_name="person")
 
+  def __unicode__(self):
+    return self.naming
+
 class Role(models.Model):
   order = models.PositiveIntegerField(editable=False)
   person = models.ForeignKey("Person")
@@ -351,7 +372,7 @@ class Publication(models.Model):
   volume = models.CharField(max_length=32,blank=True, null=True)
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
-  note = models.CharField(max_length=256, blank=True)
+  note = models.CharField(max_length=256, blank=True, null=True)
   keywords = TaggableManager(blank=True)
   url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
     help_text='Link to PDF or journal page.')
@@ -382,7 +403,7 @@ class Publication(models.Model):
           continue
         try:
           r = RoleType.objects.get(bibtex_field = role)
-          person = parse_person_name(name)
+          person = generate_person_object(name)
           if not person:
             continue
           i = i + 1
@@ -530,4 +551,129 @@ class Publication(models.Model):
       entry["abstract"] = self.abstract
 
     return entry
+
+class PublicationImportException(Exception):
+   def __init__(self, message):
+       self.message = message
+   def __str__(self):
+       return repr(self.message)
+
+class PublicationUpdateException(Exception):
+   def __init__(self, candidates):
+       self.candidates = candidates
+
+class PeopleMergeException(Exception):
+   def __init__(self, candidates):
+       self.candidates = candidates
+
+class Import(models.Model):
+  class Meta:
+    ordering = ['date_added']
+
+  source = models.CharField(max_length=64, editable = False)
+  title = models.CharField(max_length=255, editable = False)
+  data = models.TextField(blank = False, editable = False)
+  date_added = models.DateTimeField(default=datetime.now, editable = False, auto_now_add=True)
+
+  def __init__(self, *args, **kwargs):
+    if kwargs.has_key('data') and type(kwargs['data']) != str:
+      from django.utils import simplejson
+      kwargs['data'] = simplejson.dumps(kwargs['data'])
+
+    super(Import, self).__init__(*args, **kwargs)
+
+  def get_data(self):
+    from django.utils import simplejson
+    return simplejson.loads(self.data)
+
+  def construct_publication_object(self, publication_update = None, people_merge = None):
+    entry = self.get_data()
+
+    if not (entry.has_key('title') and entry.has_key('year')):
+      raise PublicationImportException("Cannot match publication type %s" % entry['@type'])
+
+    if getattr(settings, 'PUBLICATIONS_IMPORT_HANDLER', None):
+      (module, sep, method) = settings.PUBLICATIONS_IMPORT_HANDLER.rpartition(".")
+      handlermodule = __import__(module)
+      if hasattr(handlermodule, method):
+        handler = getattr(handlermodule, method)
+        entry = handler(entry)
+
+    try:
+      ptype = PublicationType.objects.get(bibtex_type__iexact = entry['@type'])
+    except ObjectDoesNotExist:
+      raise PublicationImportException("Cannot match publication type %s" % entry['@type'])
+
+    # map integer fields to integers
+    # TODO: do this in BibTeX import module
+    entry['month'] = MONTHS_MAPPING.get(entry.get('month', '').lower(), 0)
+
+    publication = None
+
+    if not publication_update:
+      candidates = list(Publication.objects.filter(title__iexact = entry['title']))
+      if len(candidates) > 0:
+        raise PublicationUpdateException(candidates)
+    else:
+      try:
+        publication = Publication.objects.get(pk=publication_update)
+      except ObjectDoesNotExist:
+        pass
+
+    people = []
+
+    candidates = {}
+    for field in ["author", "editor"]:
+      if entry.has_key(field):
+        for name in entry[field].split(" and "):
+          if not people_merge:
+            candidate = find_person_object(name)
+            if type(candidate) == list and len(candidate) > 0:
+              candidates[name] = find_person_object(name)
+              continue
+            if people_merge:
+              people.append((field, people_merge.get(name, name)))
+            else:
+              people.append((field, name))
+
+    if len(candidates) > 0:
+      raise PeopleMergeException(candidates)
+
+    if not publication:
+      publication = Publication(type=ptype, title=entry['title'], year=entry['year'])
+
+    publication.month=entry.get('month', None)
+    publication.journal=entry.get('journal', "")
+    publication.book_title=entry.get('booktitle', "")
+    publication.publisher=entry.get('publisher', "")
+    publication.volume=entry.get('volume', None)
+    publication.number=entry.get('number', None)
+    publication.note=entry.get('note', "")
+    publication.abstract=entry.get('abstract', "")
+    publication.url=entry.get('url', "")
+    publication.doi=entry.get('doi', "")
+
+    if len(people) > 0:
+      publication.set_people = people
+
+    groups = entry.get('groups', "")
+    if "," in groups:
+      publication.set_groups = [g.strip() for g in groups.split(",")]
+    else:
+      publication.set_groups = [g.strip() for g in groups.split(" ")]
+
+    if entry.has_key("keywords"):
+      publication.set_keywords = [k.strip().lower() for k in entry['keywords'].split(",")]
+
+    if entry.has_key("@file"):
+      publication.set_file = entry["@file"]
+
+    if entry.has_key("@meta") and type(entry["@meta"]) == dict:
+      publication.set_metadata = entry["@meta"]
+
+    return publication
+
+  def __unicode__(self):
+    return self.title
+
 

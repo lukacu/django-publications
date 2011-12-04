@@ -1,7 +1,4 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
-__license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
-__author__ = 'Lucas Theis <lucas@theis.io>'
-__docformat__ = 'epytext'
 
 import re
 from django import forms
@@ -9,6 +6,13 @@ from django.forms import widgets
 from django.db import models
 from publications.widgets import PagesWidget, PeopleWidget
 from publications.models import RoleType
+
+try:
+  from south.modelsinspector import add_introspection_rules
+  add_introspection_rules([], ["^publications\.fields\.PagesField"])
+  add_introspection_rules([], ["^publications\.fields\.PeopleField"])
+except ImportError:
+  pass
 
 class PagesForm(forms.MultiValueField):
 	widget = PagesWidget
