@@ -18,6 +18,7 @@ from string import ascii_uppercase
 from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
 from taggit.managers import TaggableManager
+from django.db.models import Q
 
 DEFAULT_PERSON_ROLE = "author"
 PROTECTED_PERSON_ROLES = ["author", "editor"]
@@ -173,7 +174,6 @@ def merge_people(people):
     if person == pivot:
       continue
     Role.objects.filter(person = person).update(person = pivot)
-    PersonNaming.objects.filter(person = person).update(person = pivot)
     person.delete()
 
 def determine_file_name(instance, filename):
@@ -214,36 +214,59 @@ def parse_person_name(text):
 
   return (primary_name, middle_name, family_name)
 
-def generate_person_object(text):
+def merge_person_name(name1, name2):
+  name = [None, None, None]
+
+  for i in [0, 1, 2]:
+    if name1[i] and name2[i]:
+#      if name1[i].startswith(name2[i].strip(" .")):
+#        name[i] = name1[i]
+#      elif name2[i].startswith(name1[i].strip(" .")):
+#        name[i] = name2[i]
+      if len(name2[i]) < len(name1[i]):
+        name[i] = name1[i]
+      elif len(name2[i]) > len(name1[i]):
+        name[i] = name2[i]
+      else:
+        name[i] = name1[i]
+    elif name1[i] and not name2[i]:
+      name[i] = name1[i]
+    elif not name1[i] and name2[i]:
+      name[i] = name2[i]
+    else:
+      name[i] = name1[i]
+
+  return (name[0], name[1], name[2])
+
+def generate_person_object(text, suggest = None):
+
   (primary_name, middle_name, family_name) = parse_person_name(text)
 
-  if middle_name:
-    naming =  "%s %s %s" % (primary_name, middle_name, family_name)
-  else:
-    naming = "%s %s" % (primary_name, family_name)
-
   try:
-    naming = PersonNaming.objects.get(naming = naming)
-    return naming.person
+    person = Person.objects.get(primary_name = primary_name, middle_name = middle_name, family_name = family_name)
+
+    if suggest:
+      (primary_name, middle_name, family_name) = merge_person_name(parse_person_name(text), parse_person_name(suggest))
+      person.primary_name = primary_name
+      person.middle_name = middle_name
+      person.family_name = family_name
+      person.save()
+
   except ObjectDoesNotExist:
-    p = Person(primary_name=primary_name, middle_name = middle_name, family_name=family_name)
-    p.save()
-    return p
+    person = Person(primary_name=primary_name, middle_name = middle_name, family_name=family_name)
+    person.save()
+
+  return person
 
 def find_person_object(text):
   (primary_name, middle_name, family_name) = parse_person_name(text)
 
-  if middle_name:
-    naming =  "%s %s %s" % (primary_name, middle_name, family_name)
-  else:
-    naming = "%s %s" % (primary_name, family_name)
-
   try:
-    naming = PersonNaming.objects.get(naming = naming)
-    return naming.person
+    person = Person.objects.get(primary_name = primary_name, middle_name = middle_name, family_name = family_name)
+    return person
   except ObjectDoesNotExist:
-    namings = PersonNaming.objects.filter(naming__icontains = family_name)
-    return list(namings)
+    candidates = Person.objects.filter( family_name__iexact = family_name)
+    return list(candidates)
 
 class RoleType(OrderedModel):
   identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
@@ -289,15 +312,6 @@ class Person(models.Model):
     help_text='Has a public listing page for publications.', default=True)
   group = models.ForeignKey(Group, verbose_name="default group", null=True, blank=True, on_delete=models.SET_NULL)
 
-  def save(self, *args, **kwargs):
-    super(Person, self).save(*args, **kwargs)
-
-    try:
-      PersonNaming.objects.get(naming = self.full_name())
-    except ObjectDoesNotExist:
-      naming = PersonNaming(naming = self.full_name(), person = self)
-      naming.save()
-
   class Meta:
     verbose_name_plural = 'people'
     unique_together = ("primary_name", "family_name")
@@ -323,14 +337,6 @@ class Person(models.Model):
 
   def get_absolute_url(self):
     return reverse("publications-person", kwargs={"person_id" : self.id, "slug" : slugify(self.full_name()) })
-
-
-class PersonNaming(models.Model):
-  naming = models.CharField(_('display name'), max_length=255, unique=True)
-  person = models.ForeignKey(Person, verbose_name="person")
-
-  def __unicode__(self):
-    return self.naming
 
 class Role(models.Model):
   order = models.PositiveIntegerField(editable=False)
@@ -395,6 +401,10 @@ class Publication(models.Model):
       Role.objects.filter(publication = self).delete()
       for person in self.set_people:
         name = person[1].strip()
+        if len(person) > 2:
+          suggestion = person[2].strip()
+        else:
+          suggestion = None
         if person[0]:
           role = person[0].strip().lower()
         else:
@@ -403,7 +413,7 @@ class Publication(models.Model):
           continue
         try:
           r = RoleType.objects.get(bibtex_field = role)
-          person = generate_person_object(name)
+          person = generate_person_object(name, suggestion)
           if not person:
             continue
           i = i + 1
@@ -629,12 +639,11 @@ class Import(models.Model):
           if not people_merge:
             candidate = find_person_object(name)
             if type(candidate) == list and len(candidate) > 0:
-              candidates[name] = find_person_object(name)
-              continue
-            if people_merge:
-              people.append((field, people_merge.get(name, name)))
+                candidates[name] = [str(c) for c in candidate]
             else:
               people.append((field, name))
+          else:
+            people.append((field, people_merge.get(name, name), name))
 
     if len(candidates) > 0:
       raise PeopleMergeException(candidates)

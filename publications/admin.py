@@ -7,7 +7,7 @@ from django.contrib import admin
 from django import forms
 import publications.models
 from publications.orderedmodel import OrderedModelAdmin
-from publications.models import Publication, Group, Role, Person, PersonNaming, PublicationType, RoleType, Metadata, generate_publication_objects
+from publications.models import Publication, Group, Role, Person, PublicationType, RoleType, Metadata, generate_publication_objects
 from publications.widgets import PeopleWidget
 from publications.fields import PeopleField
 from django.shortcuts import render_to_response
@@ -60,9 +60,6 @@ class MetadataInline(admin.TabularInline):
 
 class RoleInline(admin.TabularInline):
     model = Role
-
-class NamingInline(admin.TabularInline):
-    model = PersonNaming
 
 class PublicationAdmin(admin.ModelAdmin):
   radio_fields = {"type": admin.HORIZONTAL}
@@ -173,7 +170,6 @@ class GroupAdmin(admin.ModelAdmin):
 class PersonAdmin(admin.ModelAdmin):
   list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
   list_display_links = ('primary_name', 'family_name',)
-  inlines = [NamingInline,]
   actions = [merge_people, merge_people_by_family_name]
 
 class PublicationTypeAdmin(OrderedModelAdmin):
