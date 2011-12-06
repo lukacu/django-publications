@@ -10,10 +10,9 @@ def interactive_choose(message, choices):
   print message
   i = 0
   for choice in choices:
+    print "(%d) %s" % (i+1, choice)
     i = i + 1
-    print "(%d) %s" % (i, choice)
-  i = i + 1
-  print "(%d) <none>" % i
+  print "(%d) <none>" % (i+1)
 
   while True:
     c = int(input("Select option: "))
@@ -60,6 +59,8 @@ class Command(BaseCommand):
             choice = interactive_choose("Update one of similar entries?", ["%s (%d)" % (c, c.year) for c in e.candidates])
             if choice > -1:
               publication_update = e.candidates[choice].pk
+            else:
+              publication_update = -1
           except PublicationImportException, e:
             print "Import error for '%s': %s" % (queue.title, e.message)
             break
