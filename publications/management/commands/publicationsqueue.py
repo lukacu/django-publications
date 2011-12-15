@@ -62,7 +62,7 @@ class Command(BaseCommand):
             else:
               publication_update = -1
           except PublicationImportException, e:
-            print "Import error for '%s': %s" % (queue.title, e.message)
+            print "Import error for '%s': %s" % (entry.title, e.message)
             break
     else:
       raise CommandError("Invalid command")

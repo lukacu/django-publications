@@ -764,6 +764,8 @@ class BibTeXProcessor:
 
       if " and " in value:
         people_raw = [e.strip() for e in value.split(" and ")]
+      elif ";" in value:
+        people_raw = [e.strip() for e in value.split(";")]
       else:
         people_raw = [e.strip() for e in value.split(",")]
         # it is possible that there is only one author with reverse name notation

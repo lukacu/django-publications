@@ -149,26 +149,28 @@ def group_people_by_family_name(people):
   groups = {}
 
   for person in people:
-    if groups.has_key(person.family_name):
-      groups[person.family_name].append(person)
+    key = slugify(person.family_name.strip())
+    if groups.has_key(key):
+      groups[key].append(person)
     else:
-      groups[person.family_name] = [person]
+      groups[key] = [person]
 
   return groups
 
-def merge_people(people):
+def merge_people(people, pivot = None):
   if len(people) < 2:
     return
 
-  pivot = people[0]
+  if not pivot:
+    pivot = people[0]
 
-  # Search for pivot element (primitive attempt)
-  for person in people[1:]:
-    if person.family_name == pivot.family_name:
-      if len(person.primary_name) > len(pivot.primary_name):
-        pivot = person
-      elif person.primary_name == pivot.primary_name and person.middle_name and not pivot.middle_name:
-        pivot = person
+    # Search for pivot element (primitive attempt)
+    for person in people[1:]:
+      if person.family_name == pivot.family_name:
+        if len(person.primary_name) > len(pivot.primary_name):
+          pivot = person
+        elif person.primary_name == pivot.primary_name and person.middle_name and not pivot.middle_name:
+          pivot = person
 
   for person in people:
     if person == pivot:

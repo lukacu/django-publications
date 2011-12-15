@@ -18,11 +18,19 @@ from django.core.urlresolvers import reverse
 
 def merge_people_by_family_name(modeladmin, request, queryset):
   groups = publications.models.group_people_by_family_name(list(queryset))
-  for fn, group in groups.items():
-    publications.models.merge_people(group)
+  groups = filter(lambda x : len(x) > 2, [group for fn, group in groups.items()])
+  if len(groups) == 0:
+    messages.info(request, "Nothing to merge")
+    return HttpResponseRedirect(reverse("admin:publications_person_changelist"))
+  return render_to_response('admin/publications/person/merge.html', {
+      'groups': groups
+    }, context_instance=RequestContext(request))
 
 def merge_people(modeladmin, request, queryset):
-    publications.models.merge_people(list(queryset))
+  return render_to_response('admin/publications/person/merge.html', {
+      'groups': [list(queryset)]
+    }, context_instance=RequestContext(request))
+
 
 class PublicationForm(forms.ModelForm):
   class Meta:
@@ -144,7 +152,7 @@ class PublicationAdmin(admin.ModelAdmin):
         messages.info(request, msg)
 
         # redirect to publication listing
-        return HttpResponseRedirect(reverse("admin:import_bibtex"))
+        return HttpResponseRedirect(reverse("admin:publications_publication_changelist"))
     else:
       return render_to_response(
         'admin/publications/publication/import_bibtex.html', {
@@ -171,6 +179,45 @@ class PersonAdmin(admin.ModelAdmin):
   list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
   list_display_links = ('primary_name', 'family_name',)
   actions = [merge_people, merge_people_by_family_name]
+
+  def merge(self, request):
+    if request.method == 'POST':
+      if request.POST.has_key("_cancel"):
+        return HttpResponseRedirect(reverse("admin:publications_person_changelist"))
+      groups_count = int(request.POST.get("groups_count", 0))
+      groups = []
+      for group_id in xrange(1, groups_count+1):
+        #TODO: more validation
+        group_entries = [ int(i.strip()) for i in request.POST.get("group%d_set" % group_id, "").strip().split(" ") ]
+        pivot_id = int(request.POST.get("group%d" % group_id, "-1"))
+        if pivot_id in group_entries and len(group_entries) > 1:
+          group = list(Person.objects.filter(id__in = group_entries))
+          pivot = filter(lambda x : x.id == pivot_id, group)[0]
+          publications.models.merge_people(group, pivot)
+          messages.info(request, "Merged %d people entries" % len(group))
+        elif len(group_entries) == 1:
+          continue
+        else:
+          groups.append(list(Person.objects.filter(id__in = group_entries)))
+
+      if len(groups) > 0:
+        return render_to_response('admin/publications/person/merge.html', {
+          'groups': groups
+          }, context_instance=RequestContext(request))
+
+    return HttpResponseRedirect(reverse("admin:publications_person_changelist"))
+
+  def get_urls(self):
+      from django.conf.urls.defaults import patterns, url
+      urls = super(PersonAdmin, self).get_urls()
+      my_urls = patterns('',
+          url(
+              r'merge',
+              self.admin_site.admin_view(self.merge),
+              name='merge_people',
+          ),
+      )
+      return my_urls + urls
 
 class PublicationTypeAdmin(OrderedModelAdmin):
   list_display = ('title', 'description', 'public', 'bibtex_type')
