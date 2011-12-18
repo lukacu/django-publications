@@ -762,8 +762,8 @@ class BibTeXProcessor:
     elif t == "people":
       value = self._unicode(value).strip()
 
-      if " and " in value:
-        people_raw = [e.strip() for e in value.split(" and ")]
+      if " and " in value.lower():
+        people_raw = [e.strip() for e in re.split(' and ', value, flags=re.IGNORECASE)]
       elif ";" in value:
         people_raw = [e.strip() for e in value.split(";")]
       else:
@@ -793,8 +793,8 @@ class BibTeXProcessor:
       return " and ".join([ "%s, %s" % e for e in people ])
     elif t == "terms":
       value = self._unicode(value).strip()
-      if " and " in value:
-        terms_raw = [e.strip() for e in value.split(" and ")]
+      if " and " in value.lower():
+        terms_raw = [e.strip() for e in re.split(' and ', value, flags=re.IGNORECASE)]
       elif ";" in value:
         terms_raw = [e.strip() for e in value.split(";")]
       elif "," in value:

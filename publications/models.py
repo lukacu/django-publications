@@ -637,7 +637,7 @@ class Import(models.Model):
     for field in ["author", "editor"]:
       if entry.has_key(field):
         for name in entry[field].split(" and "):
-          if not people_merge:
+          if people_merge == None:
             candidate = find_person_object(name)
             if type(candidate) == list and len(candidate) > 0:
                 candidates[name] = [str(c) for c in candidate]

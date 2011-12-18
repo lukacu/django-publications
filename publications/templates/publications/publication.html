@@ -4,6 +4,18 @@
 {% block content %}
 <div class="publication publication_type_{{ publication.type.identifier }}">
 <h1>{{ publication.title }}</h1>
+
+{% if user.is_authenticated %}
+<ul class="tools">
+{% if perms.publications.change_publication %}
+<li><a href="{% url admin:publications_publication_change publication.pk %}">Edit</a></li>
+{% endif %}
+{% if perms.publications.delete_publication %}
+<li><a href="{% url admin:publications_publication_delete publication.pk %}">Delete</a></li>
+{% endif %}
+</ul>
+{% endif %}
+
 <div class="primary_authors">
 {% for author in publication.primary_authors %}
 <span class="person">
