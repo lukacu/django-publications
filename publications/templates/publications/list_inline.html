@@ -1,0 +1,9 @@
+{% load publicationtags %}
+<ul class="publications publications_inline">
+{% for publication in publications %}
+	<li class="{% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %} {% cycle 'odd' 'even' %}">
+		{% publication_inline publication %}
+	</li>
+{% endfor %}
+</ul>
+

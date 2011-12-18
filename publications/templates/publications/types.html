@@ -1,16 +1,12 @@
 {% extends "base.html" %}
 {% load publicationtags %}
 {% block content %}
-	<h1>{{ title }}</h1>
-	{% include "publications/formats.html" %}
-	{% for type, publications in types %}
-		<h2>{{ type.title }}</h2>
-		<ul class="order_years publications type_{{ type.identifier }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
-		{% for publication in publications %}
-			<li class="{% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %} {% cycle 'odd' 'even' %}">
-				{% publication_inline publication %}
-			</li>
-		{% endfor %}
-		</ul>
+	<h1>Overview by type</h1>
+	<ul id="types">
+	{% for type in types %}
+		<li class="publications type_{{ type.identifier }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
+		<a href="{% if group %}{% url publications-group-type publication_type=type.identifier group=group.identifier %}{% else %}{% url publications-type publication_type=type.identifier %}{% endif %}">{{ type.title }}</a><span class="count">{{ type.count }}</span>
+		</li>
 	{% endfor %}
+	</ul>
 {% endblock %}

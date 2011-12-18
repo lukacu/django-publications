@@ -293,7 +293,7 @@ class PublicationType(OrderedModel):
 class Group(models.Model):
   identifier = models.CharField(_('identifier'), max_length=255)
   title = models.CharField(_('title'), blank=True, max_length=255)
-  public = models.BooleanField(help_text='Is displayed in group listing.', default=True)
+  public = models.BooleanField(help_text='Is displayed in group listing.', default=False)
 
   def __unicode__(self):
     return self.title
@@ -338,7 +338,7 @@ class Person(models.Model):
       return "%s, %s" % (self.family_name, self.primary_name)
 
   def get_absolute_url(self):
-    return reverse("publications-person", kwargs={"person_id" : self.id, "slug" : slugify(self.full_name()) })
+    return reverse("publications-person", kwargs={"person_id" : self.id })
 
 class Role(models.Model):
   order = models.PositiveIntegerField(editable=False)
@@ -478,8 +478,7 @@ class Publication(models.Model):
     return ", ".join([str(k) for k in self.keywords.all()])
 
   def get_absolute_url(self):
-    slug = slugify(self.__unicode__())
-    return reverse("publication", kwargs={"publication_id" : self.id, "slug" : slug })
+    return reverse("publication", kwargs={"publication_id" : self.id })
 
   def month_bibtex(self):
     return MONTH_BIBTEX.get(self.month, '')

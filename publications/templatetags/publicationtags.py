@@ -13,7 +13,8 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.template import loader
 from django import template
-from publications.models import Publication
+from django.core.exceptions import ObjectDoesNotExist
+from publications.models import Publication, Group
 
 register = Library()
 
@@ -73,46 +74,82 @@ def publication_inline(parser, token):
     except ValueError:
       raise template.TemplateSyntaxError, "%r tag requires at least one argument argument" % token.contents.split()[0]
 
+class RenderRecentPublicationsInline(template.Node):
+  def __init__(self, group = None, count = 10):
+    self.group = group
+    self.count = count
+
+  def render(self, context):
+    try:
+      group = None
+      if self.group:
+        try:
+          group = template.Variable(self.group).resolve(context)
+          group = Group.objects.get(identifier__iexact=group)
+        except ObjectDoesNotExist:
+          return ""
+
+      candidates = Publication.objects.filter(public=True).order_by('-year', '-month', '-id')
+
+      if group:
+        candidates = candidates.filter(groups=group)
+
+      return loader.render_to_string("publications/list_inline.html", {'publications' : candidates[0:self.count]}, context)
+    except template.VariableDoesNotExist:
+      return ''
+
+@register.tag
+def recent_publications(parser, token):
+  try:
+    tag_name, group, count = token.split_contents()
+    return RenderRecentPublicationsInline(group, count)
+  except ValueError:
+    try:
+      tag_name, group = token.split_contents()
+      return RenderRecentPublicationsInline(group)
+    except ValueError:
+      return RenderRecentPublicationsInline()
+
 # Returns bibtex for one or more publications
 def to_bibtex(publications):
 
-	from publications.bibtex import BibTeXFormatter
-	bibtex_keys = set()
+  from publications.bibtex import BibTeXFormatter
+  bibtex_keys = set()
 
-	import collections
+  import collections
 
-	if not isinstance(publications, collections.Iterable):
-		publications = [publications]
+  if not isinstance(publications, collections.Iterable):
+    publications = [publications]
 
-	formatter = BibTeXFormatter()
-	output = []
+  formatter = BibTeXFormatter()
+  output = []
 
-	for publication in publications:
-		if not publication.type.bibtex_type:
-			continue
+  for publication in publications:
+    if not publication.type.bibtex_type:
+      continue
 
-		entry = publication.to_dictionary()
-		entry["@type"] = publication.type.bibtex_type
+    entry = publication.to_dictionary()
+    entry["@type"] = publication.type.bibtex_type
 
-		first_author = publication.first_author()
-		if first_author:
-			author_identifier = first_author.identifier()
-		else:
-			author_identifier = "UNCREDITED"
-		key_base = author_identifier + str(publication.year)
+    first_author = publication.first_author()
+    if first_author:
+      author_identifier = first_author.identifier()
+    else:
+      author_identifier = "UNCREDITED"
+    key_base = author_identifier + str(publication.year)
 
-		char = ord('a')
-		bibtex_key = key_base + chr(char)
-		while bibtex_key in bibtex_keys:
-			char = char + 1
-			bibtex_key = key_base + chr(char)
+    char = ord('a')
+    bibtex_key = key_base + chr(char)
+    while bibtex_key in bibtex_keys:
+      char = char + 1
+      bibtex_key = key_base + chr(char)
 
-		bibtex_keys.add(bibtex_key)
-		entry["@key"] = bibtex_key
+    bibtex_keys.add(bibtex_key)
+    entry["@key"] = bibtex_key
 
-		output.append(formatter.format(entry))
+    output.append(formatter.format(entry))
 
-	return "\n".join(output)
+  return "\n".join(output)
 
 register.simple_tag(to_bibtex)
 

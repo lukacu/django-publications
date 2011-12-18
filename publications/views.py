@@ -5,7 +5,9 @@ __docformat__ = 'epytext'
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
-from publications.models import Publication, Group, Person
+from publications.models import Publication, Group, Person, PublicationType
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count
 from django.http import HttpResponse
 from string import replace, split
 from django.utils import simplejson 
@@ -25,16 +27,6 @@ def keyword(request, keyword):
 
   candidates = Publication.objects.filter(keywords=tag, public=True)
 
-  group = None
-  if 'group' in request.GET:
-    group = request.GET['group']
-  elif getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
-    group = settings.PUBLICATIONS_DEFAULT_GROUP
-  if group:
-    candidates = candidates.filter(groups__identifier__iexact=group)
-
-  publications = []
-
   if 'format' in request.GET:
     format = request.GET['format']
   else:
@@ -43,7 +35,7 @@ def keyword(request, keyword):
   return render_result(request, candidates, "Publications for keyword %s" % tag.name, format, group)
 
 
-def publication(request, publication_id, slug):
+def publication(request, publication_id):
   try:
     publication = Publication.objects.get(pk=publication_id)
   except ObjectDoesNotExist:
@@ -74,61 +66,170 @@ def publication(request, publication_id, slug):
           'publication': publication, 'title' : publication.title
         }, context_instance=RequestContext(request))
 
-def person(request, person_id, slug):
-  try:
-    author = Person.objects.get(pk = person_id)
-  except ObjectDoesNotExist:
-    raise Http404
-
-  # find publications of this author
-  publications = []
-
-  candidates = Publication.objects.filter(public=True, role__person = author).order_by('-year', '-month', '-id')
-
-  group = None
-  if 'group' in request.GET:
-    group = request.GET['group']
-#  elif getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
-#    group = settings.PUBLICATIONS_DEFAULT_GROUP
+def person(request, person_id = None, group = None):
 
   if group:
-    candidates = candidates.filter(groups__identifier__iexact=group)
+    try:
+      group = Gropu.objects.get(identifier__iexact=group)
+    except ObjectDoesNotExist:
+      raise Http404
 
-  if 'format' in request.GET:
-    format = request.GET['format']
+  if person_id:
+    try:
+      author = Person.objects.get(pk = person_id)
+    except ObjectDoesNotExist:
+      raise Http404
+
+    candidates = Publication.objects.filter(public=True, role__person = author).order_by('-year', '-month', '-id')
+
+    if group:
+      candidates = candidates.filter(groups=group)
+
+    if 'format' in request.GET:
+      format = request.GET['format']
+    else:
+      format = 'default'
+
+    return render_result(request, candidates, "Publications by %s" % author.full_name(), format, group)
+
   else:
-    format = 'default'
+    people = Person.objects.annotate(count = Count('role__publication')).order_by('family_name', 'primary_name')
 
-  return render_result(request, candidates, "Publications by %s" % author.full_name(), format, group)
+    if group:
+      people = people.filter(groups=group)
 
-def year(request, year=None):
+    return render_to_response('publications/people.html', {
+        'people': people,
+        'group': group
+      }, context_instance=RequestContext(request))
 
-  years = []
-  if year:
-    candidates = Publication.objects.filter(year=year, public=True)
-  else:
-    candidates = Publication.objects.filter(public=True)
-  candidates = candidates.order_by('-year', '-month', '-id')
 
-  group = None
-  if 'group' in request.GET:
-    group = request.GET['group']
-  elif getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
+def years(request, year = None, group = None):
+
+  if not group and getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
     group = settings.PUBLICATIONS_DEFAULT_GROUP
+
   if group:
-    candidates = candidates.filter(groups__identifier__iexact=group)
+    try:
+      group = Group.objects.get(identifier__iexact=group)
+    except ObjectDoesNotExist:
+      raise Http404
+
+  if year:
+    candidates = Publication.objects.filter(year=year, public=True).order_by('-year', '-month', '-id')
+
+    if group:
+      candidates = candidates.filter(groups=group)
+
+    if 'format' in request.GET:
+      format = request.GET['format']
+    else:
+      format = 'default'
+
+      return render_result(request, candidates, "Publications in %s" % year, format, group)
+
+  else:
+    years = Publication.objects.filter(public=True).values('year').annotate(count = Count('year')).order_by()
+
+    if group:
+      years = years.filter(groups=group)
+
+    return render_to_response('publications/years.html', {
+        'years': years,
+        'group': group
+      }, context_instance=RequestContext(request))
+
+def types(request, publication_type = None, group = None):
+
+  if not group and getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
+    group = settings.PUBLICATIONS_DEFAULT_GROUP
+
+  if group:
+    try:
+      group = Group.objects.get(identifier__iexact=group)
+    except ObjectDoesNotExist:
+      raise Http404
+
+  if publication_type:
+    try:
+      ptype = PublicationType.objects.get(identifier = publication_type)
+    except ObjectDoesNotExist:
+      raise Http404
+
+    candidates = Publication.objects.filter(type=ptype, public=True).order_by('-year', '-month', '-id')
+
+    if group:
+      candidates = candidates.filter(groups=group)
+
+    if 'format' in request.GET:
+      format = request.GET['format']
+    else:
+      format = 'default'
+
+      return render_result(request, candidates, "Publications of type %s" % ptype.title, format, group)
+
+  else:
+    types = PublicationType.objects.filter(publication__public=True).distinct()
+
+    if group:
+      types = types.filter(publication__groups=group)
+
+    types = types.annotate(count = Count('publication__id')).order_by("title")
+
+    return render_to_response('publications/types.html', {
+        'types': types,
+        'group': group
+      }, context_instance=RequestContext(request))
+
+def recent(request, group = None):
+
+  if not group and getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
+    group = settings.PUBLICATIONS_DEFAULT_GROUP
+
+  if group:
+    try:
+      group = Group.objects.get(identifier__iexact=group)
+    except ObjectDoesNotExist:
+      raise Http404
+
+  limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
+
+  candidates = Publication.objects.filter(public=True).order_by('-year', '-month', '-id')
+
+  if group:
+    candidates = candidates.filter(groups=group)
 
   if 'format' in request.GET:
     format = request.GET['format']
   else:
     format = 'default'
 
-  if year:
-    return render_result(request, candidates, "Publications in %s" % year, format, group)
-  else:
-    return render_result(request, candidates, "Publications", format, group)
-  
+  return render_result(request, candidates[0:limit], "Recent publications", format, group)
 
+def groups(request, group = None):
+
+  if group:
+    try:
+      group = Group.objects.get(identifier__iexact=group)
+    except ObjectDoesNotExist:
+      raise Http404
+
+  if group:
+    candidates = Publication.objects.filter(public=True).order_by('-year', '-month', '-id')
+
+    if 'format' in request.GET:
+      format = request.GET['format']
+    else:
+      format = 'default'
+
+      return render_result(request, candidates, "Publications in %s" % group.title, format, group)
+
+  else:
+    groups = Group.objects.filter(publication__public=True, public=True).annotate(count = Count('publication__id')).order_by("title")
+
+    return render_to_response('publications/groups.html', {
+        'groups': groups
+      }, context_instance=RequestContext(request))
 
 def render_result(request, publications, title, format, group):
   if format == "json":
@@ -146,39 +247,23 @@ def render_result(request, publications, title, format, group):
         'format': format,
         'group': group
       }, context_instance=RequestContext(request), mimetype='application/x-bibtex; charset=UTF-8')
-  elif format == 'annual':
-    years = []
-    for publication in publications:
-      if not years or (years[-1][0] != publication.year):
-        years.append((publication.year, []))
-      years[-1][1].append(publication)
-    return render_to_response('publications/years.html', {
-        'years': years,
-        'title': title,
-        'format': format,
-        'group': group
-      }, context_instance=RequestContext(request))
-  elif format == 'types':
-    types_dict = {}
-    for publication in publications:
-      if types_dict.has_key(publication.type):
-        types_dict[publication.type].append(publication)
-      else:
-        types_dict[publication.type] = [publication]
-    types = []
-    for ptype, type_data in types_dict.items():
-      types.append((ptype, types_dict[ptype]))
-    return render_to_response('publications/types.html', {
-        'types': types,
-        'title': title,
-        'format': format,
-        'group': group
-      }, context_instance=RequestContext(request))
   else:
+    limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
+
+    paginator = Paginator(publications, limit)
+
+    page = request.GET.get('page', 1)
+    try:
+        publications = paginator.page(page)
+    except PageNotAnInteger:
+        publications = paginator.page(1)
+    except EmptyPage:
+        publications = paginator.page(paginator.num_pages)
+
     return render_to_response('publications/list.html', {
         'publications': publications,
         'title': title,
-        'format': "default",
+        'format': "html",
         'group': group
       }, context_instance=RequestContext(request))
 

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load publicationtags %}
+{% block content %}
+	<h1>People</h1>
+	<ul id="people">
+	{% for person in people %}
+		<li class="person person_{{ person.id }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
+		<a href="{% url publications-person person_id=person.id %}/{{ person.full_name|slugify }}">{{ person.full_name_reverse }}</a><span class="count">{{ person.count }}</span>
+		</li>
+	{% endfor %}
+	</ul>
+{% endblock %}
