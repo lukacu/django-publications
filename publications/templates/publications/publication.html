@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load publicationtags %}
-
+{% load tagging_tags %}
 {% block content %}
 <div class="publication publication_type_{{ publication.type.identifier }}">
 <h1>{{ publication.title }}</h1>
@@ -34,9 +34,10 @@
 {% if publication.abstract %}
 <div class="abstract">{{ publication.abstract }}</div>
 {% endif %}
-{% if publication.keywords %}
+{% tags_for_object publication as keywords %}
+{% if keywords %}
 <div class="keywords">
-	{% for keyword in publication.keywords.all %}
+	{% for keyword in keywords %}
 		<a class="keyword" href="{% url publications-keyword keyword=keyword.slug %}">{{ keyword }}</a>
 	{% endfor %}
 </div>

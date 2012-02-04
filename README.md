@@ -1,20 +1,22 @@
 django-publications
 ===================
 
-A Django app for managing scientific publications. 
+A Django app for managing scientific publications. A working setup of this fork can be seen [here](http://prints.vicos.si/).
 
 Requirements
 ------------
 
 * python >= 2.5.0
 * django >= 1.3.0
-* django-tagging
+* django-tagging (with slug support, like [this fork](https://github.com/lukacu/django-tagging))
 * South
 
 The app has been tested with the above versions, but older versions might also work.
 
 Installation
 ------------
+
+0) Install dependencies.
 
 1) Install the `publications` folder so that it is visible in Python path.
 

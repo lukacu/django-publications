@@ -22,14 +22,14 @@ def keyword(request, keyword):
   except ObjectDoesNotExist:
     raise Http404
 
-  candidates = Publication.objects.filter(keywords=tag, public=True)
+  candidates = TaggedItem.objects.get_by_model(Publication.objects.filter(public=True).order_by('-year', '-month', '-id'), tag)
 
   if 'format' in request.GET:
     format = request.GET['format']
   else:
     format = 'default'
 
-  return render_result(request, candidates, "Publications for keyword %s" % tag.name, format, group)
+  return render_result(request, candidates, "Publications for keyword %s" % tag.name, format, None)
 
 
 def publication(request, publication_id):
