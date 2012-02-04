@@ -1,14 +1,15 @@
 django-publications
 ===================
 
-A Django app for managing scientific publications.
+A Django app for managing scientific publications. 
 
 Requirements
 ------------
 
 * python >= 2.5.0
 * django >= 1.3.0
-* django-taggit >= 0.9.3
+* django-tagging
+* South
 
 The app has been tested with the above versions, but older versions might also work.
 

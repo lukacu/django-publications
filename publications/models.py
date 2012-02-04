@@ -17,7 +17,7 @@ from django.utils.http import urlquote_plus
 from string import ascii_uppercase
 from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
-from taggit.managers import TaggableManager
+from tagging.fields import TagField
 from django.db.models import Q
 
 DEFAULT_PERSON_ROLE = "author"
@@ -316,7 +316,6 @@ class Person(models.Model):
 
   class Meta:
     verbose_name_plural = 'people'
-    unique_together = ("primary_name", "family_name")
 
   def __unicode__(self):
     return self.full_name_reverse()
@@ -381,7 +380,7 @@ class Publication(models.Model):
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True, null=True)
-  keywords = TaggableManager(blank=True)
+  keywords = TagField(blank=True)
   url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
     help_text='Link to PDF or journal page.')
   code = models.URLField(blank=True, verify_exists=False,

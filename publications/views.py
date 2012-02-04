@@ -1,7 +1,4 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
-__license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
-__author__ = 'Lucas Theis <lucas@theis.io>'
-__docformat__ = 'epytext'
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
@@ -16,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
-from taggit.models import Tag
+from tagging.models import Tag, TaggedItem
 
 def keyword(request, keyword):
 
@@ -214,8 +211,10 @@ def groups(request, group = None):
     except ObjectDoesNotExist:
       raise Http404
 
+  print group
+
   if group:
-    candidates = Publication.objects.filter(public=True).order_by('-year', '-month', '-id')
+    candidates = Publication.objects.filter(public=True, groups = group).order_by('-year', '-month', '-id')
 
     if 'format' in request.GET:
       format = request.GET['format']
