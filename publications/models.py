@@ -316,6 +316,7 @@ class Person(models.Model):
 
   class Meta:
     verbose_name_plural = 'people'
+    ordering = ['family_name', 'primary_name']
 
   def __unicode__(self):
     return self.full_name_reverse()

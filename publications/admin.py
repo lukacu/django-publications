@@ -176,7 +176,7 @@ class GroupAdmin(admin.ModelAdmin):
   list_display = ('identifier', 'title', 'public')
 
 class PersonAdmin(admin.ModelAdmin):
-  list_display = ('primary_name', 'family_name', 'url', 'public', 'group')
+  list_display = ('family_name', 'primary_name' , 'url', 'public', 'group')
   list_display_links = ('primary_name', 'family_name',)
   actions = [merge_people, merge_people_by_family_name]
 
