@@ -169,7 +169,7 @@ def merge_people(people, pivot = None):
       if person.family_name == pivot.family_name:
         if len(person.primary_name) > len(pivot.primary_name):
           pivot = person
-        elif person.primary_name == pivot.primary_name and person.middle_name and not pivot.middle_name:
+        elif person.primary_name == pivot.primary_name:
           pivot = person
 
   for person in people:
@@ -198,33 +198,22 @@ def determine_file_name(instance, filename):
       return join(path, "%s%s" % (p[-2:], ext))
 
 def parse_person_name(text):
-  primary_name = None
-  middle_name = None
-  family_name = None
   if "," in text:
     parts = [e.strip() for e in text.partition(",")]
     primary_name = " ".join([e.strip() for e in parts[2].split(" ")])
     family_name = " ".join([e.strip() for e in parts[0].split(" ")])
   else:
     parts = [e.strip() for e in text.split(" ")]
-    primary_name = parts[0]
-    if len(parts) > 2:
-      middle_name = parts[1]
-      family_name = " ".join(parts[2:])
-    else:
-      family_name = " ".join(parts[1:])
+    primary_name = " ".join(parts[0:-1])
+    family_name = parts[len(parts)-1]
 
-  return (primary_name, middle_name, family_name)
+  return (primary_name, family_name)
 
 def merge_person_name(name1, name2):
   name = [None, None, None]
 
   for i in [0, 1, 2]:
     if name1[i] and name2[i]:
-#      if name1[i].startswith(name2[i].strip(" .")):
-#        name[i] = name1[i]
-#      elif name2[i].startswith(name1[i].strip(" .")):
-#        name[i] = name2[i]
       if len(name2[i]) < len(name1[i]):
         name[i] = name1[i]
       elif len(name2[i]) > len(name1[i]):
@@ -242,29 +231,28 @@ def merge_person_name(name1, name2):
 
 def generate_person_object(text, suggest = None):
 
-  (primary_name, middle_name, family_name) = parse_person_name(text)
+  (primary_name, family_name) = parse_person_name(text)
 
   try:
-    person = Person.objects.get(primary_name = primary_name, middle_name = middle_name, family_name = family_name)
+    person = Person.objects.get(primary_name = primary_name, family_name = family_name)
 
     if suggest:
-      (primary_name, middle_name, family_name) = merge_person_name(parse_person_name(text), parse_person_name(suggest))
+      (primary_name, family_name) = merge_person_name(parse_person_name(text), parse_person_name(suggest))
       person.primary_name = primary_name
-      person.middle_name = middle_name
       person.family_name = family_name
       person.save()
 
   except ObjectDoesNotExist:
-    person = Person(primary_name=primary_name, middle_name = middle_name, family_name=family_name)
+    person = Person(primary_name=primary_name, family_name=family_name)
     person.save()
 
   return person
 
 def find_person_object(text):
-  (primary_name, middle_name, family_name) = parse_person_name(text)
+  (primary_name, family_name) = parse_person_name(text)
 
   try:
-    person = Person.objects.get(primary_name = primary_name, middle_name = middle_name, family_name = family_name)
+    person = Person.objects.get(primary_name = primary_name, family_name = family_name)
     return person
   except ObjectDoesNotExist:
     candidates = Person.objects.filter( family_name__iexact = family_name)
@@ -305,9 +293,8 @@ class Group(models.Model):
     super(Group, self).save(*args, **kwargs)
 
 class Person(models.Model):
-  primary_name = models.CharField(_('first name'), max_length=100, blank=False, null=False)
-  middle_name = models.CharField(_('middle name'), max_length=50, blank=True, null=True)
-  family_name = models.CharField(_('family name'), max_length=100, blank=False, null=False)
+  primary_name = models.CharField(_('first name'), max_length=255, blank=False, null=False)
+  family_name = models.CharField(_('family name'), max_length=255, blank=False, null=False)
   url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
     help_text='Home page of the person.')
   public = models.BooleanField(
@@ -326,15 +313,9 @@ class Person(models.Model):
     return unicode_to_ascii(self.family_name).replace("?", "_")
 
   def full_name(self):
-    if self.middle_name:
-      return "%s %s %s" % (self.primary_name, self.middle_name, self.family_name)
-    else:
       return "%s %s" % (self.primary_name, self.family_name)
 
   def full_name_reverse(self):
-    if self.middle_name:
-      return "%s, %s %s" % (self.family_name, self.primary_name, self.middle_name)
-    else:
       return "%s, %s" % (self.family_name, self.primary_name)
 
   def get_absolute_url(self):
@@ -499,12 +480,7 @@ class Publication(models.Model):
 
   def people_as_string(self):
     roles = Role.objects.filter(publication = self).order_by("role__order", "order")
-
-    people = []
-    for role in roles:
-      people.append("%s (%s)" % (role.person.full_name(), role.role.name))
-
-    return ", ".join(people)
+    return "; ".join(["%s (%s)" % (role.person.full_name_reverse(), role.role.name) for role in roles])
 
   def primary_authors(self):
     people = Role.objects.filter(publication = self).order_by("role", "order")

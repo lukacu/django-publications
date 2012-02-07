@@ -56,7 +56,7 @@ class PeopleField(forms.CharField):
         return []
 
     people = []
-    for person in value.split(','):
+    for person in value.split(';'):
       m = re.match("([^\\(]+)\\(([^\\)]+)\\)", person.strip(), re.U)
       if m:
         people.append((m.group(2).strip(), m.group(1).strip()))
