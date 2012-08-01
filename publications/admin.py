@@ -72,14 +72,14 @@ class RoleInline(admin.TabularInline):
 class PublicationAdmin(admin.ModelAdmin):
   radio_fields = {"type": admin.HORIZONTAL}
   raw_id_fields = ["people"]
-  list_display = ('type', 'first_author', 'title', 'year', 'journal_or_book_title')
+  list_display = ('type', 'first_author', 'title', 'year', 'within')
   list_display_links = ('title',)
-  search_fields = ('title', 'journal', 'authors', 'keywords', 'year')
+  search_fields = ('title', 'within', 'authors', 'keywords', 'year')
   fieldsets = (
     ("Basic information", {'fields': 
       ('type', 'title', 'people_roles', 'abstract', 'note')}),
     ("Publishing information", {'fields': 
-      ('year', 'month', 'journal', 'book_title', 'publisher', 'volume', 'number', 'pages')}),
+      ('year', 'month', 'within', 'publisher', 'volume', 'number', 'pages')}),
     ("Resources", {'fields': 
       ('url', 'code', 'file', 'doi')}),
     ("Categoritzation", {'fields': 

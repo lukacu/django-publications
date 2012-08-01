@@ -7,13 +7,5 @@
 {% if author.public %}<a href="{{ author.get_absolute_url }}/{{ author.full_name|slugify }}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
 {% endfor %}
 </div>
-<div class="published">
-{% if publication.journal %}
-	<i>{{ publication.journal }}, {{ publication.year }}</i><br />
-{% else %}
-	<i>{% if publication.book_title %}{{ publication.book_title }},{% endif %}
-	{% if publication.publisher %}{{ publication.publisher }},{% endif %}
-	{{ publication.year }}</i><br/>
-{% endif %}
-</div>
+<div class="published">{% if publication.within %}{{ publication.within }}, {% endif %}{% if publication.publisher %}{{ publication.publisher }}, {% endif %}{{ publication.year }}</div>
 </div>

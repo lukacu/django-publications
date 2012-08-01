@@ -76,7 +76,7 @@ def generate_publication_objects(bibliography, update=False):
   publications = []
   for entry in bibliography:
     # add missing keys
-    keys = ['journal',
+    keys = ['within',
       'booktitle',
       'publisher',
       'url',
@@ -106,8 +106,7 @@ def generate_publication_objects(bibliography, update=False):
       title=entry['title'],
       year=entry['year'],
       month=entry['month'],
-      journal=entry['journal'],
-      book_title=entry['booktitle'],
+      within=entry['within'],
       publisher=entry['publisher'],
       volume=entry['volume'],
       number=entry['number'],
@@ -356,15 +355,14 @@ class Publication(models.Model):
   people = models.ManyToManyField("Person", through='Role')
   year = models.PositiveIntegerField(max_length=4)
   month = models.IntegerField(choices=MONTH_CHOICES, blank=True, null=True)
-  journal = models.CharField(max_length=256, blank=True)
-  book_title = models.CharField(max_length=256, blank=True)
+  within = models.CharField("Published in", max_length=256, blank=True)
   publisher = models.CharField(max_length=256, blank=True)
   volume = models.CharField(max_length=32,blank=True, null=True)
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True, null=True)
   keywords = TagField(blank=True)
-  url = models.URLField(blank=True, verify_exists=False, verbose_name='URL', help_text='Link to PDF or journal page.')
+  url = models.URLField(blank=True, verify_exists=False, verbose_name='URL', help_text='Link to PDF or a journal page.')
   code = models.URLField(blank=True, verify_exists=False, help_text='Link to page with code.')
   file = models.FileField(upload_to=determine_file_name, verbose_name='File', blank=True, null=True, help_text='The file resource attached to the entry. PDF format is preferred.')
   doi = models.CharField(max_length=128, verbose_name='DOI', blank=True)
@@ -470,13 +468,6 @@ class Publication(models.Model):
     except IndexError:
       return None
 
-  def journal_or_book_title(self):
-    if self.journal:
-      return self.journal
-    else:
-      return self.book_title
-
-
   def people_as_string(self):
     roles = Role.objects.filter(publication = self).order_by("role__order", "order")
     return "; ".join(["%s (%s)" % (role.person.full_name_reverse(), role.role.name) for role in roles])
@@ -510,10 +501,8 @@ class Publication(models.Model):
 
     entry["year"] = self.year
 
-    if self.journal:
-      entry["journal"] = self.journal
-    if self.book_title:
-      entry["booktitle"] = self.book_title
+    if self.within:
+      entry["within"] = self.within
     if self.publisher:
       entry["publisher"] = self.publisher
     if self.volume:
@@ -628,7 +617,7 @@ class Import(models.Model):
       publication = Publication(type=ptype, title=entry['title'], year=entry['year'])
 
     publication.month=entry.get('month', None)
-    publication.journal=entry.get('journal', "")
+    publication.within=entry.get('journal', entry.get('book_title', ""))
     publication.book_title=entry.get('booktitle', "")
     publication.publisher=entry.get('publisher', "")
     publication.volume=entry.get('volume', None)
