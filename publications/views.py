@@ -67,7 +67,7 @@ def person(request, person_id = None, group = None):
 
   if group:
     try:
-      group = Gropu.objects.get(identifier__iexact=group)
+      group = Group.objects.get(identifier__iexact=group)
     except ObjectDoesNotExist:
       raise Http404
 
@@ -216,12 +216,9 @@ def groups(request, group = None):
   if group:
     candidates = Publication.objects.filter(public=True, groups = group).order_by('-year', '-month', '-id')
 
-    if 'format' in request.GET:
-      format = request.GET['format']
-    else:
-      format = 'default'
+    format = request.GET.get('format', 'default')
 
-      return render_result(request, candidates, "Publications in %s" % group.title, format, group)
+    return render_result(request, candidates, "Publications in %s" % group.title, format, group)
 
   else:
     groups = Group.objects.filter(publication__public=True, public=True).annotate(count = Count('publication__id')).order_by("title")
@@ -230,11 +227,19 @@ def groups(request, group = None):
         'groups': groups
       }, context_instance=RequestContext(request))
 
+def prepare_json(publication):
+
+  entry = {"title" : publication.title, "year" : publication.year}
+  entry["authors"] = [author.full_name for author in entry.primary_authors]
+
+  return entry
+
+
 def render_result(request, publications, title, format, group):
   if format == "json":
     data = list()
-    for publication in publications:
-      entry = publication.to_dictionary()
+    for publication in publications[1:10]:
+      entry = publication.to_dictionary(False)
       entry["type"] = publication.type.pk
       entry["id"] = publication.pk
       data.append(entry)

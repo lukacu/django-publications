@@ -19,6 +19,7 @@ from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
 from tagging.fields import TagField
 from django.db.models import Q
+from tagging.models import Tag
 
 DEFAULT_PERSON_ROLE = "author"
 PROTECTED_PERSON_ROLES = ["author", "editor"]
@@ -363,10 +364,8 @@ class Publication(models.Model):
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True, null=True)
   keywords = TagField(blank=True)
-  url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
-    help_text='Link to PDF or journal page.')
-  code = models.URLField(blank=True, verify_exists=False,
-    help_text='Link to page with code.')
+  url = models.URLField(blank=True, verify_exists=False, verbose_name='URL', help_text='Link to PDF or journal page.')
+  code = models.URLField(blank=True, verify_exists=False, help_text='Link to page with code.')
   file = models.FileField(upload_to=determine_file_name, verbose_name='File', blank=True, null=True, help_text='The file resource attached to the entry. PDF format is preferred.')
   doi = models.CharField(max_length=128, verbose_name='DOI', blank=True)
   abstract = models.TextField("Abstract", blank=True)
@@ -456,7 +455,7 @@ class Publication(models.Model):
 
 
   def keywords_escaped(self):
-    return ", ".join([str(k) for k in self.keywords.all()])
+    return ", ".join([str(k) for k in Tag.objects.get_for_object(self)])
 
   def get_absolute_url(self):
     return reverse("publication", kwargs={"publication_id" : self.id })
@@ -494,9 +493,8 @@ class Publication(models.Model):
         break
     return authors
 
-  def to_dictionary(self):
-    entry = {}
-    entry["title"] = self.title
+  def to_dictionary(self, longfields=True):
+    entry = {"title": self.title}
 
     try:
       author = RoleType.objects.get(bibtex_field = "author")
@@ -532,10 +530,11 @@ class Publication(models.Model):
       entry["doi"] = self.doi
     if self.url:
       entry["url"] = self.url
-    if self.note:
-      entry["note"] = self.note
-    if self.abstract:
-      entry["abstract"] = self.abstract
+    if longfields:
+      if self.note:
+        entry["note"] = self.note
+      if self.abstract:
+        entry["abstract"] = self.abstract
 
     return entry
 
@@ -613,7 +612,7 @@ class Import(models.Model):
     for field in ["author", "editor"]:
       if entry.has_key(field):
         for name in entry[field].split(" and "):
-          if people_merge == None:
+          if people_merge is None:
             candidate = find_person_object(name)
             if type(candidate) == list and len(candidate) > 0:
                 candidates[name] = [str(c) for c in candidate]

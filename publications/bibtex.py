@@ -670,7 +670,7 @@ class BibTeXProcessor:
       new_key = key.lower()
 
       errormsg = self.validate(key, value)
-      if errormsg != None : 
+      if not errormsg is None:
         self._error("Incorrect format for field '%s': %s" % (bibtex_type, errormsg))
         error = True
         continue
@@ -710,9 +710,9 @@ class BibTeXProcessor:
     return result
 
   def _error(self, message, line = None, column = None):
-    if (line == None):
+    if line is None:
       line = self.line
-    if (column == None):
+    if column is None:
       column = self.column
 
     self.errors.append({"message" : message, "line" : line, "column" : column})
@@ -802,7 +802,7 @@ class BibTeXProcessor:
       else:
         terms_raw = [e.strip() for e in value.split(" ")]
 
-      return (', '.join([s.strip() for s in terms_raw]))
+      return ', '.join([s.strip() for s in terms_raw])
 
     return value.strip()
 
@@ -839,7 +839,7 @@ class BibTeXFormatter:
     o = list()
 
     for key, value in entry.items():
-      if (key == "@type" or key == "@key"):
+      if key == "@type" or key == "@key":
         continue
       o.append("\t" + key + " = {" + unicode_to_tex(value) + "}")
 
@@ -886,7 +886,7 @@ if __name__ == "__main__":
 
   for entry in entries:
     e = processor.process(entry)
-    if e == None:
+    if e is None:
       print processor.getErrors()
     else:
       print formatter.format(e)
