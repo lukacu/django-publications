@@ -7,7 +7,7 @@ from django.contrib import admin
 from django import forms
 import publications.models
 from publications.orderedmodel import OrderedModelAdmin
-from publications.models import Publication, Group, Role, Person, PublicationType, RoleType, Metadata, generate_publication_objects
+from publications.models import Publication, Group, Role, Person, PublicationType, Metadata, generate_publication_objects
 from publications.widgets import PeopleWidget
 from publications.fields import PeopleField
 from django.shortcuts import render_to_response
@@ -222,11 +222,7 @@ class PersonAdmin(admin.ModelAdmin):
 class PublicationTypeAdmin(OrderedModelAdmin):
   list_display = ('title', 'description', 'public', 'bibtex_type')
 
-class RoleTypeAdmin(OrderedModelAdmin):
-  list_display = ('name', 'public', 'bibtex_field')
-
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Group, GroupAdmin)
 admin.site.register(Person, PersonAdmin)
 admin.site.register(PublicationType, PublicationTypeAdmin)
-admin.site.register(RoleType, RoleTypeAdmin)

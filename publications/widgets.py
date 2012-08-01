@@ -4,7 +4,6 @@ from django import forms
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.forms.widgets import Input, MultiWidget, TextInput
-from publications.models import Person, Role, RoleType
 
 class PagesWidget(MultiWidget):
 	def __init__(self, *args, **kwargs):

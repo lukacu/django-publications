@@ -21,9 +21,6 @@ from tagging.fields import TagField
 from django.db.models import Q
 from tagging.models import Tag
 
-DEFAULT_PERSON_ROLE = "author"
-PROTECTED_PERSON_ROLES = ["author", "editor"]
-
 # names shown in admin area
 MONTH_CHOICES = (
     (1, 'January'),
@@ -258,16 +255,6 @@ def find_person_object(text):
     candidates = Person.objects.filter( family_name__iexact = family_name)
     return list(candidates)
 
-class RoleType(OrderedModel):
-  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
-  name = models.CharField(_('name'), blank=False, max_length=255)
-  public = models.BooleanField(help_text='The type is publicly visible.', default=True)
-  authorship = models.BooleanField(help_text='The type can be used for authorship related queries for people.', default=True)
-  bibtex_field = models.CharField(_('BibTeX field'), blank=True, unique=True, max_length=64)
-
-  def __unicode__(self):
-    return self.name
-
 class PublicationType(OrderedModel):
   identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
   title = models.CharField(_('title'), blank=False, max_length=255)
@@ -325,10 +312,9 @@ class Role(models.Model):
   order = models.PositiveIntegerField(editable=False)
   person = models.ForeignKey("Person")
   publication = models.ForeignKey("Publication")
-  role = models.ForeignKey("RoleType", on_delete=models.PROTECT)
 
   def __unicode__(self):
-    return "%s is %s of %s" % (self.person.full_name(), self.role.name, self.publication.title)
+    return "%s is author of %s" % (self.person.full_name(), self.publication.title)
 
 class Metadata(models.Model):
   publication = models.ForeignKey("Publication", verbose_name="publication", editable = False)
@@ -373,6 +359,7 @@ class Publication(models.Model):
   def save(self, *args, **kwargs):
 
     # In case we do not have a primary key
+
     if not self.pk:
       super(Publication, self).save(*args, **kwargs)
 
@@ -380,24 +367,20 @@ class Publication(models.Model):
       i = 0
       Role.objects.filter(publication = self).delete()
       for person in self.set_people:
-        name = person[1].strip()
-        if len(person) > 2:
+        if type(person) is list:
+          name = person[1].strip()
           suggestion = person[2].strip()
         else:
+          name = person
           suggestion = None
-        if person[0]:
-          role = person[0].strip().lower()
-        else:
-          role = DEFAULT_PERSON_ROLE
         if name == "":
           continue
         try:
-          r = RoleType.objects.get(bibtex_field = role)
           person = generate_person_object(name, suggestion)
           if not person:
             continue
-          i = i + 1
-          r = Role(person = person, publication = self, role=r, order = i)
+          i += 1
+          r = Role(person = person, publication = self, order = i)
           r.save()
         except ObjectDoesNotExist:
           pass
@@ -461,41 +444,25 @@ class Publication(models.Model):
   def month_bibtex(self):
     return MONTH_BIBTEX.get(self.month, '')
 
+  def authors(self):
+    return [role.person for role in Role.objects.filter(publication = self).order_by("order")]
+
   def first_author(self):
-    people = Role.objects.filter(publication=self).order_by("role", "order")
+    people = Role.objects.filter(publication=self).order_by("order")
     try:
       return people[0].person
     except IndexError:
       return None
 
   def people_as_string(self):
-    roles = Role.objects.filter(publication = self).order_by("role__order", "order")
-    return "; ".join(["%s (%s)" % (role.person.full_name_reverse(), role.role.name) for role in roles])
-
-  def primary_authors(self):
-    people = Role.objects.filter(publication = self).order_by("role", "order")
-    authors = []
-    role = None
-    for a in people:
-      if a.role == role or not role:
-        authors.append(a.person)
-        role = a.role
-      else:
-        break
-    return authors
+    roles = Role.objects.filter(publication = self).order_by("order")
+    return "; ".join([role.person.full_name_reverse() for role in roles])
 
   def to_dictionary(self, longfields=True):
     entry = {"title": self.title}
 
     try:
-      author = RoleType.objects.get(bibtex_field = "author")
-      entry["author"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(role=author, publication = self).order_by("order") ])
-    except ObjectDoesNotExist:
-      pass
-
-    try:
-      editor = RoleType.objects.get(bibtex_field = "editor")
-      entry["editor"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(role=editor, publication = self).order_by("order") ])
+      entry["authors"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(publication = self).order_by("order") ])
     except ObjectDoesNotExist:
       pass
 

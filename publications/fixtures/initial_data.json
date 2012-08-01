@@ -1,28 +1,4 @@
 [
-{
-"model": "publications.roletype",
-"pk": 1,
-"fields": {
-"identifier" : "author",
-"order": 0,
-"name": "Author",
-"bibtex_field": "author",
-"public": 1,
-"authorship": 1
-}
-},
-{
-"model": "publications.roletype",
-"pk": 2,
-"fields": {
-"identifier" : "editor",
-"order": 1,
-"name": "Editor",
-"bibtex_field": "editor",
-"public": 1,
-"authorship": 1
-}
-},
 {"model": "publications.publicationtype","pk": 0, "fields": { "identifier" : "techreport", "order": 9, "title": "Tech report", "description": "A report published by a school or other institution, usually numbered within a series.", "bibtex_type": "techreport", "public": 1 } },
 {"model": "publications.publicationtype","pk": 1, "fields": { "identifier" : "booklet", "order": 10, "title": "Booklet", "description": "A work that is printed and bound, but without a named publisher or sponsoring institution.", "bibtex_type": "booklet", "public": 1 } },
 {"model": "publications.publicationtype","pk": 2, "fields": { "identifier" : "unpublished", "order": 11, "title": "Unpublished", "description": "A document having an author and title, but not formally published.", "bibtex_type": "unpublished", "public": 1 } },
