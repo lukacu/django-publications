@@ -12,13 +12,11 @@ from django.core.files import File
 from django.utils.encoding import smart_str, force_unicode
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.utils.http import urlquote_plus
-from string import ascii_uppercase
+from django.core.exceptions import ObjectDoesNotExist
 from os.path import exists, splitext, join, basename
 from publications.orderedmodel import OrderedModel
+from publications import get_publication_type_choices, resolve_publication_type, resolve_publication_type_identifier
 from tagging.fields import TagField
-from django.db.models import Q
 from tagging.models import Tag
 
 # names shown in admin area
@@ -224,7 +222,7 @@ def merge_person_name(name1, name2):
     else:
       name[i] = name1[i]
 
-  return (name[0], name[1], name[2])
+  return name[0], name[1], name[2]
 
 def generate_person_object(text, suggest = None):
 
@@ -254,16 +252,6 @@ def find_person_object(text):
   except ObjectDoesNotExist:
     candidates = Person.objects.filter( family_name__iexact = family_name)
     return list(candidates)
-
-class PublicationType(OrderedModel):
-  identifier = models.CharField(_('identifier'), blank=False, unique=True, max_length=64)
-  title = models.CharField(_('title'), blank=False, max_length=255)
-  description = models.TextField(_('title'), blank=False)
-  public = models.BooleanField(help_text='The type is displayed in public listings.', default=True)
-  bibtex_type = models.CharField(_('BibTeX types that translate into this type'), blank=True, unique=True, max_length=64)
-
-  def __unicode__(self):
-    return self.title
 
 class Group(models.Model):
   identifier = models.CharField(_('identifier'), max_length=255)
@@ -334,7 +322,7 @@ class Publication(models.Model):
   class Meta:
     ordering = ['-year', '-month', '-id']
 
-  type = models.ForeignKey("PublicationType", on_delete=models.PROTECT)
+  type = models.CharField("Publication type", choices=get_publication_type_choices(), blank=False, null=False, max_length=16)
   date_added = models.DateTimeField(_('date added'), default=datetime.now, editable = False, auto_now_add=True)
   date_modified = models.DateTimeField(_('date modified'), editable = False, auto_now = True, default=datetime.now)
   title = models.CharField(max_length=512)
@@ -508,6 +496,23 @@ class PeopleMergeException(Exception):
    def __init__(self, candidates):
        self.candidates = candidates
 
+
+bibtex_mapping = {
+  "article":    0,
+  "inproceedings":   0,
+  "book":  1,
+  "inbook":   0,
+  "incollection":   1,
+  "proceedings":   2,
+  "manual":   2,
+  "phdthesis":   1,
+  "masterthesis":  1,
+  "techreport":   3,
+  "booklet":   2,
+  "unpublished":   3,
+  "misc":   2
+}
+
 class Import(models.Model):
   class Meta:
     ordering = ['date_added']
@@ -542,7 +547,7 @@ class Import(models.Model):
         entry = handler(entry)
 
     try:
-      ptype = PublicationType.objects.get(bibtex_type__iexact = entry['@type'])
+      ptype = resolve_publication_type(bibtex_mapping[entry['@type']])
     except ObjectDoesNotExist:
       raise PublicationImportException("Cannot match publication type %s" % entry['@type'])
 
@@ -585,7 +590,6 @@ class Import(models.Model):
 
     publication.month=entry.get('month', None)
     publication.within=entry.get('journal', entry.get('book_title', ""))
-    publication.book_title=entry.get('booktitle', "")
     publication.publisher=entry.get('publisher', "")
     publication.volume=entry.get('volume', None)
     publication.number=entry.get('number', None)

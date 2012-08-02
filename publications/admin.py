@@ -7,8 +7,7 @@ from django.contrib import admin
 from django import forms
 import publications.models
 from publications.orderedmodel import OrderedModelAdmin
-from publications.models import Publication, Group, Role, Person, PublicationType, Metadata, generate_publication_objects
-from publications.widgets import PeopleWidget
+from publications.models import Publication, Group, Role, Person, Metadata, generate_publication_objects
 from publications.fields import PeopleField
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -19,7 +18,7 @@ from django.core.urlresolvers import reverse
 def merge_people_by_family_name(modeladmin, request, queryset):
   groups = publications.models.group_people_by_family_name(list(queryset))
   groups = filter(lambda x : len(x) > 2, [group for fn, group in groups.items()])
-  if len(groups) == 0:
+  if not len(groups):
     messages.info(request, "Nothing to merge")
     return HttpResponseRedirect(reverse("admin:publications_person_changelist"))
   return render_to_response('admin/publications/person/merge.html', {
@@ -161,7 +160,7 @@ class PublicationAdmin(admin.ModelAdmin):
         RequestContext(request))
 
   def get_urls(self):
-      from django.conf.urls.defaults import patterns, url
+      from django.conf.urls import patterns, url
       urls = super(PublicationAdmin, self).get_urls()
       my_urls = patterns('',
           url(
@@ -219,10 +218,7 @@ class PersonAdmin(admin.ModelAdmin):
       )
       return my_urls + urls
 
-class PublicationTypeAdmin(OrderedModelAdmin):
-  list_display = ('title', 'description', 'public', 'bibtex_type')
 
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Group, GroupAdmin)
 admin.site.register(Person, PersonAdmin)
-admin.site.register(PublicationType, PublicationTypeAdmin)

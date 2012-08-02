@@ -32,11 +32,10 @@ class Command(BaseCommand):
     processor = BibTeXProcessor(strict=False)
 
     bibliography = list()
-    publications = list()
 
     for entry in entries:
       entry = processor.process(entry)
-      if entry == None:
+      if entry is None:
         for error in processor.getErrors():
           print error
         raise CommandError("Validation errors")

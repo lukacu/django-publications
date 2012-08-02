@@ -2,7 +2,7 @@
 {% load publicationtags %}
 {% load tagging_tags %}
 {% block content %}
-<div class="publication publication_type_{{ publication.type.identifier }}">
+<div class="publication publication_type_{{ publication.type }}">
 <h1>{{ publication.title }}</h1>
 
 {% if user.is_authenticated %}

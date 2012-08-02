@@ -1,5 +1,5 @@
 {% load publicationtags %}
-<div class="publication_inline publication_type_{{ publication.type.identifier }}">
+<div class="publication_inline publication_type_{{ publication.type }}">
 <div class="title"><a href="{{ publication.get_absolute_url }}/{{ publication.title|slugify }}" class="title">{{ publication.title }}</a></div>
 <div class="authors">
 {% for author in publication.authors %}

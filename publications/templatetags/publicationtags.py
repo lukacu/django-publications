@@ -3,18 +3,13 @@ __license__ = 'MIT License <http://www.opensource.org/licenses/mit-license.php>'
 __author__ = 'Luka Cehovin <luka.cehovin@gmail.com>'
 __docformat__ = 'epytext'
 
-import urlparse
-from django.template.defaulttags import URLNode, url
 from django.contrib.sites.models import Site
 from django.conf import settings
-from django.template import Library, Node, Context, RequestContext
-from django.template.loader import get_template
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
+from django.template import Library
 from django.template import loader
 from django import template
 from django.core.exceptions import ObjectDoesNotExist
-from publications.models import Publication, Group
+from publications.models import Publication, Group, Metadata
 
 register = Library()
 
@@ -50,7 +45,7 @@ class RenderPublicationInline(template.Node):
   def render(self, context):
     try:
       entry = self.variable.resolve(context)
-      ft = entry.type.identifier
+      ft = entry.type
       tt = self.template
       try:
         return loader.render_to_string("publications/inline_%s_%s.html" % (tt, ft), {'publication' : entry}, context)
@@ -129,7 +124,12 @@ def to_bibtex(publications):
       continue
 
     entry = publication.to_dictionary()
-    entry["@type"] = publication.type.bibtex_type
+
+    try:
+      bibtex_type_metadata = Metadata.objects.get(publication=publication, key="bibtex.type")
+      entry["@type"] = bibtex_type_metadata.value
+    except:
+      entry["@type"] = "misc"
 
     first_author = publication.first_author()
     if first_author:
@@ -141,7 +141,7 @@ def to_bibtex(publications):
     char = ord('a')
     bibtex_key = key_base + chr(char)
     while bibtex_key in bibtex_keys:
-      char = char + 1
+      char += 1
       bibtex_key = key_base + chr(char)
 
     bibtex_keys.add(bibtex_key)
