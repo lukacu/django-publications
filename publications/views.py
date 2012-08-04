@@ -1,4 +1,6 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
+from django.contrib.sites.models import Site
+from django.core.urlresolvers import reverse
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
@@ -228,9 +230,15 @@ def groups(request, group = None):
 
 def prepare_json(publication):
 
+  protocol = getattr(settings, 'SITE_URL_PROTOCOL', "http://")
+
+  current_site = Site.objects.get_current()
+
+  url = protocol + current_site.domain + reverse("publication", kwargs={"publication_id" : publication.id })
+
   entry = {"title": publication.title, "year": publication.year,
-    "authors": [author.full_name for author in publication.authors()],
-    "within" : publication.within}
+    "authors": [author.full_name() for author in publication.authors()],
+    "within" : publication.within, "type" : publication.type, "url" : url}
 
   return entry
 
@@ -238,8 +246,8 @@ def prepare_json(publication):
 def render_result(request, publications, title, format, group):
   if format == "json":
     data = list()
-    limit = min(1, getattr(settings, 'PUBLICATIONS_JSON_SIZE', 10))
-    for publication in publications[1:limit]:
+    limit = max(1, getattr(settings, 'PUBLICATIONS_JSON_SIZE', 10))
+    for publication in publications[0:limit]:
       data.append(prepare_json(publication))
     return HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
   elif format == 'default':
