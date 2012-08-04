@@ -91,7 +91,7 @@ def person(request, person_id = None, group = None):
     people = Person.objects.annotate(count = Count('role__publication')).order_by('family_name', 'primary_name')
 
     if group:
-      people = people.filter(groups=group)
+      people = people.filter(group=group)
 
     return render_to_response('publications/people.html', {
         'people': people,
@@ -163,14 +163,16 @@ def types(request, publication_type = None, group = None):
       return render_result(request, candidates, "Publications of type %s" % ptype["title"], format, group)
 
   else:
-    types = Publication.objects.filter(public=True).values("type")
+    type_count = Publication.objects.filter(public=True).values('type').annotate(count = Count('type')).order_by()
 
     if group:
-      types = types.filter(publication__groups=group)
+      type_count = type_count.filter(groups=group)
 
-    types = types.annotate(count = Count('type'))
-
-    types = [resolve_publication_type(t.type) for t in types]
+    types = []
+    for t in type_count:
+      type = resolve_publication_type(t["type"])
+      if type:
+        types.append({"title" : type["title"], "identifier" : type["identifier"], "count": t["count"]})
 
     return render_to_response('publications/types.html', {
         'types': types,
