@@ -1,9 +1,13 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
+from os.path import splitext
+from os.path import join, exists
+from posix import stat
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
+from django.utils.encoding import smart_str
 from publications.models import Publication, Group, Person
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
@@ -227,6 +231,38 @@ def groups(request, group = None):
     return render_to_response('publications/groups.html', {
         'groups': groups
       }, context_instance=RequestContext(request))
+
+def files(request, publication_id):
+  try:
+    publication = Publication.objects.get(pk=publication_id)
+  except ObjectDoesNotExist:
+    raise Http404
+
+  filepath = publication.file.__unicode__()
+
+  name, ext = splitext(filepath)
+
+  filepath_absolute = join(settings.MEDIA_ROOT, filepath)
+
+  if not exists(filepath_absolute):
+    raise Http404
+
+  statinfo = stat(filepath_absolute)
+
+  if getattr(settings, 'PUBLICATIONS_USE_XSENDFILE', False):
+    response = HttpResponse(mimetype='application/force-download')
+    response['X-Sendfile'] = smart_str(filepath_absolute)  
+  else:
+    response = HttpResponse(open(filepath_absolute, "r"), mimetype='application/force-download')
+
+  response['Content-Length'] = statinfo.st_size
+  response['Content-Disposition'] = 'attachment; filename=%s%s' % (smart_str(publication.generate_identifier()), ext)
+
+  return response
+
+
+
+
 
 def prepare_json(publication):
 

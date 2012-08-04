@@ -419,6 +419,17 @@ class Publication(models.Model):
     except IndexError:
       return None
 
+  def generate_identifier(self):
+    first_author = self.first_author()
+    if first_author:
+      author_identifier = first_author.identifier()
+    else:
+      author_identifier = "UNCREDITED"
+
+    firstword, restwords= self.title.split(' ',1)
+
+    return author_identifier + str(self.year) + firstword
+
   def people_as_string(self):
     roles = Role.objects.filter(publication = self).order_by("order")
     return "; ".join([role.person.full_name_reverse() for role in roles])

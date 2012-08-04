@@ -39,4 +39,5 @@ urlpatterns = patterns('',
 	url(r'^groups/(?P<group>[^/]+)/person/$', 'publications.views.person', name='publications-group-person-list'),
 	url(r'^groups/(?P<group>[^/]+)/person/(?P<person_id>\d+)(?:/.*)?$', 'publications.views.person', name='publications-group-person'),
 
+  url(r'^files/(?P<publication_id>\d+)(?:/.*)?$', 'publications.views.files', name='publication-files'),
 )
