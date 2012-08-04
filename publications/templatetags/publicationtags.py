@@ -9,7 +9,7 @@ from django.template import Library
 from django.template import loader
 from django import template
 from django.core.exceptions import ObjectDoesNotExist
-from publications.models import Publication, Group, Metadata
+from publications.models import Publication, Group
 
 register = Library()
 
@@ -104,52 +104,3 @@ def recent_publications(parser, token):
       return RenderRecentPublicationsInline(group)
     except ValueError:
       return RenderRecentPublicationsInline()
-
-# Returns bibtex for one or more publications
-def to_bibtex(publications):
-
-  from publications.bibtex import BibTeXFormatter
-  bibtex_keys = set()
-
-  import collections
-
-  if not isinstance(publications, collections.Iterable):
-    publications = [publications]
-
-  formatter = BibTeXFormatter()
-  output = []
-
-  for publication in publications:
-    if not publication.type.bibtex_type:
-      continue
-
-    entry = publication.to_dictionary()
-
-    try:
-      bibtex_type_metadata = Metadata.objects.get(publication=publication, key="bibtex.type")
-      entry["@type"] = bibtex_type_metadata.value
-    except:
-      entry["@type"] = "misc"
-
-    first_author = publication.first_author()
-    if first_author:
-      author_identifier = first_author.identifier()
-    else:
-      author_identifier = "UNCREDITED"
-    key_base = author_identifier + str(publication.year)
-
-    char = ord('a')
-    bibtex_key = key_base + chr(char)
-    while bibtex_key in bibtex_keys:
-      char += 1
-      bibtex_key = key_base + chr(char)
-
-    bibtex_keys.add(bibtex_key)
-    entry["@key"] = bibtex_key
-
-    output.append(formatter.format(entry))
-
-  return "\n".join(output)
-
-register.simple_tag(to_bibtex)
-

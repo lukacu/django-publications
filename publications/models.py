@@ -1,21 +1,16 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
 
 import os
-import django
 from datetime import datetime
 from django.db import models
-from django.db.models.signals import post_init
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.core.files import File
-from django.utils.encoding import smart_str, force_unicode
-from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from os.path import exists, splitext, join, basename
-from publications.orderedmodel import OrderedModel
-from publications import get_publication_type_choices, resolve_publication_type, resolve_publication_type_identifier
+from publications import get_publication_type_choices, resolve_publication_type
 from tagging.fields import TagField
 from tagging.models import Tag
 
@@ -35,22 +30,6 @@ MONTH_CHOICES = (
     (12, 'December')
   )
 
-# abbreviations used in BibTex
-MONTH_BIBTEX = {
-    1: 'Jan',
-    2: 'Feb',
-    3: 'Mar',
-    4: 'Apr',
-    5: 'May',
-    6: 'Jun',
-    7: 'Jul',
-    8: 'Aug',
-    9: 'Sep',
-    10: 'Oct',
-    11: 'Nov',
-    12: 'Dec'
-  }
-
 # mapping of months
 MONTHS_MAPPING = {
   'jan': 1, 'january': 1,
@@ -66,79 +45,81 @@ MONTHS_MAPPING = {
   'nov': 11, 'november': 11,
   'dec': 12, 'december': 12}
 
-def generate_publication_objects(bibliography, update=False):
+def generate_publication_object(entry, publication_update = None, people_merge = None):
 
-  publications = []
-  for entry in bibliography:
-    # add missing keys
-    keys = ['within',
-      'booktitle',
-      'publisher',
-      'url',
-      'doi',
-      'keywords',
-      'note',
-      'month',
-      'abstract',
-      'groups']
+  if getattr(settings, 'PUBLICATIONS_IMPORT_HANDLER', None):
+    (module, sep, method) = settings.PUBLICATIONS_IMPORT_HANDLER.rpartition(".")
+    handlermodule = __import__(module)
+    if hasattr(handlermodule, method):
+      handler = getattr(handlermodule, method)
+      entry = handler(entry)
 
-    for key in keys:
-      if not entry.has_key(key):
-        entry[key] = ''
+  publication_type = resolve_publication_type(entry['type'])
+  if not publication_type:
+    raise PublicationImportException("Unrecognized publication type %s" % entry['type'])
 
+  publication = None
+
+  if not publication_update:
+    candidates = list(Publication.objects.filter(title__iexact = entry['title']))
+    if len(candidates) > 0:
+      raise PublicationUpdateException(candidates)
+  else:
     try:
-      ptype = PublicationType.objects.get(bibtex_type__iexact = entry['@type'])
+      publication = Publication.objects.get(pk=publication_update)
     except ObjectDoesNotExist:
-      continue
+      pass
 
-    # map integer fields to integers
-    entry['month'] = MONTHS_MAPPING.get(entry['month'].lower(), 0)
-    entry['volume'] = entry.get('volume', None)
-    entry['number'] = entry.get('number', None)
+  people = []
 
-    publication = Publication(
-      type=ptype,
-      title=entry['title'],
-      year=entry['year'],
-      month=entry['month'],
-      within=entry['within'],
-      publisher=entry['publisher'],
-      volume=entry['volume'],
-      number=entry['number'],
-      note=entry['note'],
-      abstract=entry['abstract'],
-      url=entry['url'],
-      doi=entry['doi'])
+  candidates = {}
+  if entry.has_key("authors"):
+    for name in entry["authors"]:
+      if people_merge is None:
+        candidate = find_person_object(name)
+        if type(candidate) == list and len(candidate) > 0:
+          candidates[name] = [str(c) for c in candidate]
+        else:
+          people.append(name)
+      else:
+        people.append((people_merge.get(name, name), name))
 
-    people = []
+  if len(candidates) > 0:
+    raise PeopleMergeException(candidates)
 
-    if entry.has_key("author"):
-      people.extend([("author", name) for name in entry["author"].split(" and ")])
+  if not publication:
+    publication = Publication(type=publication_type["identifier"], title=entry['title'], year=entry['year'])
 
-    if entry.has_key("editor"):
-      people.extend([("editor", name) for name in entry["editor"].split(" and ")])
+  publication.month=MONTHS_MAPPING.get(entry.get('month', "").lower(), None)
+  publication.within=entry.get('journal', entry.get('book_title', ""))
+  publication.publisher=entry.get('publisher', "")
+  publication.volume=entry.get('volume', None)
+  publication.number=entry.get('number', None)
+  publication.note=entry.get('note', "")
+  publication.abstract=entry.get('abstract', "")
+  publication.url=entry.get('url', "")
+  publication.doi=entry.get('doi', "")
 
-    if len(people) > 0:
-      publication.set_people = people
+  if len(people) > 0:
+    publication.set_people = people
 
-    if "," in entry["groups"]:
-      publication.set_groups = [g.strip() for g in entry.get('groups', "").split(",")]
-    else:
-      publication.set_groups = [g.strip() for g in entry.get('groups', "").split(" ")]
+  groups = entry.get('groups', "")
+  if "," in groups:
+    publication.set_groups = [g.strip() for g in groups.split(",")]
+  else:
+    publication.set_groups = [g.strip() for g in groups.split(" ")]
 
-    if entry.has_key("keywords"):
-      publication.set_keywords = [k.strip().lower() for k in entry['keywords'].split(",")]
+  if entry.has_key("tags"):
+    publication.set_tags = [k.strip().lower() for k in entry['tags'] if k.strip() != ""]
 
-    if entry.has_key("@file"):
-      publication.set_file = entry["@file"]
+  if entry.has_key("files") and type(entry["files"]) == list:
+    publication.set_files = entry["files"]
 
-    if entry.has_key("@meta") and type(entry["@meta"]) == dict:
-      publication.set_metadata = entry["@meta"]
+  if entry.has_key("metadata") and type(entry["metadata"]) == dict:
+    publication.set_metadata = entry["metadata"]
 
-    # add publication
-    publications.append(publication)
+  return publication
 
-  return publications
 
 def group_people_by_family_name(people):
   groups = {}
@@ -202,12 +183,11 @@ def parse_person_name(text):
     primary_name = " ".join(parts[0:-1])
     family_name = parts[len(parts)-1]
 
-  return (primary_name, family_name)
+  return primary_name, family_name
 
 def merge_person_name(name1, name2):
-  name = [None, None, None]
-
-  for i in [0, 1, 2]:
+  name = [None, None]
+  for i in [0, 1]:
     if name1[i] and name2[i]:
       if len(name2[i]) < len(name1[i]):
         name[i] = name1[i]
@@ -222,10 +202,9 @@ def merge_person_name(name1, name2):
     else:
       name[i] = name1[i]
 
-  return name[0], name[1], name[2]
+  return name[0], name[1]
 
 def generate_person_object(text, suggest = None):
-
   (primary_name, family_name) = parse_person_name(text)
 
   try:
@@ -355,9 +334,9 @@ class Publication(models.Model):
       i = 0
       Role.objects.filter(publication = self).delete()
       for person in self.set_people:
-        if type(person) is list:
-          name = person[1].strip()
-          suggestion = person[2].strip()
+        if type(person) is tuple:
+          name = person[0].strip()
+          suggestion = person[1].strip()
         else:
           name = person
           suggestion = None
@@ -399,12 +378,13 @@ class Publication(models.Model):
           m = Metadata(key=key, value = value, publication = self)
         m.save()
 
-    if hasattr(self, "set_keywords"):
-      keywords = filter(lambda k : len(k) > 0, self.set_keywords)
-      self.keywords.set(*keywords)
+    if hasattr(self, "set_tags"):
+      Tag.objects.update_tags(self, " ".join([ '"%s"' % t for t in self.set_tags ]))
+      #self.keywords.set(*tags)
 
-    if hasattr(self, "set_file"):
-      filename = self.set_file
+    files = getattr(self, "set_files", None)
+    if files and len(files) > 0:
+      filename = files[0]
       if exists(filename):
         f = open(filename)
         self.file = File(f)
@@ -429,9 +409,6 @@ class Publication(models.Model):
   def get_absolute_url(self):
     return reverse("publication", kwargs={"publication_id" : self.id })
 
-  def month_bibtex(self):
-    return MONTH_BIBTEX.get(self.month, '')
-
   def authors(self):
     return [role.person for role in Role.objects.filter(publication = self).order_by("order")]
 
@@ -447,14 +424,9 @@ class Publication(models.Model):
     return "; ".join([role.person.full_name_reverse() for role in roles])
 
   def to_dictionary(self, longfields=True):
-    entry = {"title": self.title}
-
-    try:
-      entry["authors"] = " and ".join([ p.person.full_name() for p in Role.objects.filter(publication = self).order_by("order") ])
-    except ObjectDoesNotExist:
-      pass
-
-    entry["year"] = self.year
+    entry = {"title": self.title,
+             "authors": [p.person.full_name() for p in Role.objects.filter(publication=self).order_by("order")],
+             "year": self.year}
 
     if self.within:
       entry["within"] = self.within
@@ -467,18 +439,24 @@ class Publication(models.Model):
     if self.pages:
       entry["pages"] = self.pages
     if self.month:
-      entry["month"] = self.month_bibtex()
+      entry["month"] = self.month
     if self.keywords:
       entry["keywords"] = self.keywords_escaped()
     if self.doi:
       entry["doi"] = self.doi
     if self.url:
       entry["url"] = self.url
-    if longfields:
-      if self.note:
-        entry["note"] = self.note
-      if self.abstract:
-        entry["abstract"] = self.abstract
+    if self.note:
+      entry["note"] = self.note
+    if self.abstract:
+      entry["abstract"] = self.abstract
+
+    md = {}
+    metadata = Metadata.objects.filter(publication=self)
+    for mdentry in metadata:
+      md[mdentry.key] = mdentry.value
+
+    entry["metadata"] = md
 
     return entry
 
@@ -495,23 +473,6 @@ class PublicationUpdateException(Exception):
 class PeopleMergeException(Exception):
    def __init__(self, candidates):
        self.candidates = candidates
-
-
-bibtex_mapping = {
-  "article":    0,
-  "inproceedings":   0,
-  "book":  1,
-  "inbook":   0,
-  "incollection":   1,
-  "proceedings":   2,
-  "manual":   2,
-  "phdthesis":   1,
-  "masterthesis":  1,
-  "techreport":   3,
-  "booklet":   2,
-  "unpublished":   3,
-  "misc":   2
-}
 
 class Import(models.Model):
   class Meta:
@@ -532,91 +493,6 @@ class Import(models.Model):
   def get_data(self):
     from django.utils import simplejson
     return simplejson.loads(self.data)
-
-  def construct_publication_object(self, publication_update = None, people_merge = None):
-    entry = self.get_data()
-
-    if not (entry.has_key('title') and entry.has_key('year')):
-      raise PublicationImportException("Cannot match publication type %s" % entry['@type'])
-
-    if getattr(settings, 'PUBLICATIONS_IMPORT_HANDLER', None):
-      (module, sep, method) = settings.PUBLICATIONS_IMPORT_HANDLER.rpartition(".")
-      handlermodule = __import__(module)
-      if hasattr(handlermodule, method):
-        handler = getattr(handlermodule, method)
-        entry = handler(entry)
-
-    try:
-      ptype = resolve_publication_type(bibtex_mapping[entry['@type']])
-    except ObjectDoesNotExist:
-      raise PublicationImportException("Cannot match publication type %s" % entry['@type'])
-
-    # map integer fields to integers
-    # TODO: do this in BibTeX import module
-    entry['month'] = MONTHS_MAPPING.get(entry.get('month', '').lower(), 0)
-
-    publication = None
-
-    if not publication_update:
-      candidates = list(Publication.objects.filter(title__iexact = entry['title']))
-      if len(candidates) > 0:
-        raise PublicationUpdateException(candidates)
-    else:
-      try:
-        publication = Publication.objects.get(pk=publication_update)
-      except ObjectDoesNotExist:
-        pass
-
-    people = []
-
-    candidates = {}
-    for field in ["author", "editor"]:
-      if entry.has_key(field):
-        for name in entry[field].split(" and "):
-          if people_merge is None:
-            candidate = find_person_object(name)
-            if type(candidate) == list and len(candidate) > 0:
-                candidates[name] = [str(c) for c in candidate]
-            else:
-              people.append((field, name))
-          else:
-            people.append((field, people_merge.get(name, name), name))
-
-    if len(candidates) > 0:
-      raise PeopleMergeException(candidates)
-
-    if not publication:
-      publication = Publication(type=ptype, title=entry['title'], year=entry['year'])
-
-    publication.month=entry.get('month', None)
-    publication.within=entry.get('journal', entry.get('book_title', ""))
-    publication.publisher=entry.get('publisher', "")
-    publication.volume=entry.get('volume', None)
-    publication.number=entry.get('number', None)
-    publication.note=entry.get('note', "")
-    publication.abstract=entry.get('abstract', "")
-    publication.url=entry.get('url', "")
-    publication.doi=entry.get('doi', "")
-
-    if len(people) > 0:
-      publication.set_people = people
-
-    groups = entry.get('groups', "")
-    if "," in groups:
-      publication.set_groups = [g.strip() for g in groups.split(",")]
-    else:
-      publication.set_groups = [g.strip() for g in groups.split(" ")]
-
-    if entry.has_key("keywords"):
-      publication.set_keywords = [k.strip().lower() for k in entry['keywords'].split(",")]
-
-    if entry.has_key("@file"):
-      publication.set_file = entry["@file"]
-
-    if entry.has_key("@meta") and type(entry["@meta"]) == dict:
-      publication.set_metadata = entry["@meta"]
-
-    return publication
 
   def __unicode__(self):
     return self.title

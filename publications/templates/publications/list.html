@@ -2,23 +2,6 @@
 {% load publicationtags %}
 {% block content %}
 	<h1>{{ title }}</h1>
-<div class="pagination">
-    <span class="step-links">
-        <span class="previous">
-        {% if publications.has_previous %}
-            <a href="?page={{ publications.previous_page_number }}">previous</a>
-        {% endif %}
-        </span>
-        <span class="current">
-            Page {{ publications.number }} of {{ publications.paginator.num_pages }}.
-        </span>
-        <span class="next">
-        {% if publications.has_next %}
-            <a href="?page={{ publications.next_page_number }}">next</a>
-        {% endif %}
-        </span>
-    </span>
-</div>
 	<ul class="order_default publications">
 	{% for publication in publications.object_list %}
 		<li class="{% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %} {% cycle 'odd' 'even' %}">

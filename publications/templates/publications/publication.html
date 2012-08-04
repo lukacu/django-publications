@@ -38,13 +38,15 @@
 <ul>
 {% if publication.code %}<li><a class="link" href="{{ publication.code }}">Code</a></li>{% endif %}
 {% if publication.url %}<li><a class="link" rel="external" href="{{ publication.url }}">URL</a></li>{% endif %}
-{% if publication.file %}<li><a class="link" href="{{ MEDIA_URL }}{{ publication.file }}">File</a></li>{% endif %}
-{% if publication.doi %}<li><a class="link" rel="external" href="http://dx.doi.org/{{ publication.doi }}">DOI</a></li>{% endif %}
-<li><a href="{{ publication.get_absolute_url }}?format=bibtex">Export as BibTex</a></li>
+{% if publication.file %}<li><a class="file" href="{{ MEDIA_URL }}{{ publication.file }}">File</a></li>{% endif %}
+{% if publication.doi %}<li><a class="doi" rel="external" href="http://dx.doi.org/{{ publication.doi }}">DOI</a></li>{% endif %}
+{% for exporter in exporters %}
+<li><a class="exporter" href="{{ publication.get_absolute_url }}?format={{ exporter.identifier }}">Export to {{ exporter.name }}</a></li>
+{% endfor %}
 </ul>
 </p>
-<h2>Linking</h2>
-<p class="linking">
+<h2>Embedding</h2>
+<p class="embedding">
 <tt lang="link" class="markup">&lt;a href="{% absolute_url publication.get_absolute_url %}"&gt;{{ publication.title }}&lt;/a&gt;</tt>
 </p>
 </div>

@@ -2,9 +2,6 @@
 
 import re
 import sys
-import urllib
-import StringIO, codecs
-import re, os, os.path
 
 ## {{{ http://code.activestate.com/recipes/81611/ (r2)
 def int_to_roman(input):
@@ -579,7 +576,7 @@ BIBTEX_TYPES = {
     },
 "conference" : {"required" : {"author", "title", "booktitle", "year"},
     "optional" : {"editor", "pages", "organization", "publisher", "address", "month", "note", "url"},
-    "description" : "The same as inproceedings, included for Scribe (markup language) compatibility.", "name" : "Title"
+    "description" : "The same as inproceedings, included for Scribe (markup language) compatibility.", "name" : "Conference"
     },
 "inbook" : {"required" : {"author", "title", "chapter", "pages", "year"},
     "optional" : {"editor", "volume", "series", "address", "edition", "month", "note", "url", "abstract", "ISBN"},
@@ -617,7 +614,7 @@ BIBTEX_TYPES = {
     "name" : "PhD Thesis"
     },
 "proceedings" : {"required" : {"title", "year"},
-    "optional" : {"editor", "publish", "organization", "address", "month", "note", "url"},
+    "optional" : {"editor", "publisher", "organization", "address", "month", "note", "url"},
     "description" : " The proceedings of a conference.",
     "name" : "Proceedings"
     },
@@ -642,7 +639,7 @@ class BibTeXProcessor:
     self.required = require;
     self.strict = strict;
 
-  def registerReplacement(key, value):
+  def registerReplacement(self, key, value):
     self._replace[' ' + key + ' '] = ' ' + value + ' '
 
   def process(self, entry):
@@ -701,8 +698,8 @@ class BibTeXProcessor:
 
       result[new_key] = self.parseField(new_key, value)
 
-    result["@type"] = bibtex_type
-    result["@key"] = bibtex_key
+    result["type"] = bibtex_type
+    result["key"] = bibtex_key
 
     if error:
       return None
@@ -834,12 +831,12 @@ class BibTeXFormatter:
 
     from publications.transcode import unicode_to_tex
 
-    bibtex_type = entry["@type"]
-    bibtex_key = entry["@key"]
+    bibtex_type = entry["type"]
+    bibtex_key = entry["key"]
     o = list()
 
     for key, value in entry.items():
-      if key == "@type" or key == "@key":
+      if key == "type" or key == "key":
         continue
       o.append("\t" + key + " = {" + unicode_to_tex(value) + "}")
 

@@ -10,7 +10,7 @@ from django.utils import simplejson
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
-from publications import resolve_publication_type
+from publications import resolve_publication_type, get_publications_exporter, list_export_formats
 from tagging.models import Tag, TaggedItem
 
 def keyword(request, keyword):
@@ -41,25 +41,25 @@ def publication(request, publication_id):
   else:
     format = 'default'
   if format == "json":
-    data = list()
-    for publication in [publication]:
-      entry = publication.to_dictionary()
-      entry["pubtype"] = publication.type.bibtex_type
-      data.append(entry)
-    return HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
-  elif format == 'bibtex':
-    return render_to_response('publications/publications.bib', {
-        'publications': [publication]
-      }, context_instance=RequestContext(request), mimetype='application/x-bibtex; charset=UTF-8')
-  else:
+    data = prepare_json(publication)
+    return HttpResponse(simplejson.dumps([data]), mimetype='application/json; charset=UTF-8')
+  elif format == 'default':
     try:
       return render_to_response('publications/publication_%s.html' % publication.type, {
-          'publication': publication, 'title' : publication.title
+          'publication': publication, 'title' : publication.title, 'exporters' : list_export_formats()
         }, context_instance=RequestContext(request))
     except loader.TemplateDoesNotExist:
       return render_to_response('publications/publication.html', {
-          'publication': publication, 'title' : publication.title
+          'publication': publication, 'title' : publication.title, 'exporters' : list_export_formats()
         }, context_instance=RequestContext(request))
+  else:
+    exporter = get_publications_exporter(format)
+    if not exporter:
+      raise Http404
+    else:
+      return exporter.export_to_response(publication)
+
+
 
 def person(request, person_id = None, group = None):
 
@@ -210,8 +210,6 @@ def groups(request, group = None):
     except ObjectDoesNotExist:
       raise Http404
 
-  print group
-
   if group:
     candidates = Publication.objects.filter(public=True, groups = group).order_by('-year', '-month', '-id')
 
@@ -228,8 +226,9 @@ def groups(request, group = None):
 
 def prepare_json(publication):
 
-  entry = {"title" : publication.title, "year" : publication.year}
-  entry["authors"] = [author.full_name for author in entry.primary_authors]
+  entry = {"title": publication.title, "year": publication.year,
+    "authors": [author.full_name for author in publication.authors()],
+    "within" : publication.within}
 
   return entry
 
@@ -237,20 +236,11 @@ def prepare_json(publication):
 def render_result(request, publications, title, format, group):
   if format == "json":
     data = list()
-    for publication in publications[1:10]:
-      entry = publication.to_dictionary(False)
-      entry["type"] = publication.type.pk
-      entry["id"] = publication.pk
-      data.append(entry)
+    limit = min(1, getattr(settings, 'PUBLICATIONS_JSON_SIZE', 10))
+    for publication in publications[1:limit]:
+      data.append(prepare_json(publication))
     return HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
-  elif format == 'bibtex':
-    return render_to_response('publications/publications.bib', {
-        'title': title,
-        'publications': publications,
-        'format': format,
-        'group': group
-      }, context_instance=RequestContext(request), mimetype='application/x-bibtex; charset=UTF-8')
-  else:
+  elif format == 'default':
     limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
 
     paginator = Paginator(publications, limit)
@@ -269,4 +259,13 @@ def render_result(request, publications, title, format, group):
         'format': "html",
         'group': group
       }, context_instance=RequestContext(request))
+  else:
+    exporter = get_publications_exporter(format)
+    if not exporter:
+      raise Http404
+    else:
+      return exporter.export_to_response(publications)
+
+
+
 

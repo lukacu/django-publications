@@ -1,22 +1,19 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
 
 from django.core.management.base import BaseCommand, CommandError
-from publications.models import *
-from string import split, join
-from publications.models import Import, Publication, PublicationImportException, PublicationUpdateException, PeopleMergeException
-from django.conf import settings
+from publications.models import Import, PublicationImportException, PublicationUpdateException, PeopleMergeException, generate_publication_object
 
 def interactive_choose(message, choices):
   print message
   i = 0
   for choice in choices:
     print "(%d) %s" % (i+1, choice)
-    i = i + 1
+    i += 1
   print "(%d) <none>" % (i+1)
 
   while True:
     c = int(input("Select option: "))
-    if c > 0 and c <= len(choices):
+    if 0 < c <= len(choices):
       return c-1
     if c == len(choices) + 1:
       return -1
@@ -45,7 +42,7 @@ class Command(BaseCommand):
           people_merge = {}
         while True:
           try:
-            publication = entry.construct_publication_object(publication_update, people_merge)
+            publication = generate_publication_object(entry.get_data(), publication_update, people_merge)
             publication.save()
             entry.delete()
             break

@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_modify adminmedia %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />{% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<script type="text/javascript" src="/media/admin/js/admin/RelatedObjectLookups.js"></script>
+{% endblock %}
+
+
+{% block breadcrumbs %}
+	<div class="breadcrumbs">
+		<a href="../../../">{% trans "Home" %}</a> &rsaquo;
+		<a href="../../">Publications</a> &rsaquo;
+		<a href="../">Publications</a> &rsaquo;
+		Import publications
+	</div>
+{% endblock %}
+
+{% block content %}
+	<div id="content-main">
+		<form method="post">
+			{% csrf_token %}
+			{{ bib }}
+			<div>
+				{% if errors %}
+					<p class="errornote">Please correct the errors below.</p>
+				{% endif %}
+				<fieldset class="module aligned">
+                    {% if errors.importer %}
+                    <div class="form-row errors">
+                        <ul class="errorlist">{%for error in errors.importer %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% else %}
+                    <div class="form-row">
+                        {% endif %}
+                        <div>
+                            <label for="id_importer" class="required">Format:</label>
+                            <select name="importer" id="id_importer">
+                                {% for e in importers %}
+                                <option value="{{ e.identifier }}" {% if request.POST.importer == e.identifier %}selected="true"{% endif %}>{{ e.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="help">Select import format.</p>
+                        </div>
+                    </div>
+					{% if errors.publications %}
+					<div class="form-row errors">
+						<ul class="errorlist">{%for error in errors.publications %}<li>{{ error }}</li>{% endfor %}</ul>
+					{% else %}
+					<div class="form-row">
+					{% endif %}
+						<div>
+							<label for="id_publications" class="required">Publications:</label>
+							<textarea rows="20" cols="80" name="publications" id="id_publications">{{ request.POST.publications }}</textarea>
+							<p class="help">Paste the publication data in the specified format into the text area above.</p>
+						</div>
+					</div>
+				</fieldset>
+				<div class="submit-row">
+					<input type="submit" value="Import" class="default" name="_save" />
+				</div><br clear="all" />
+			</div>
+		</form>
+	</div>
+{% endblock %}

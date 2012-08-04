@@ -46,6 +46,7 @@ class PeopleField(forms.CharField):
 
   widget = PeopleWidget(attrs={'size':'100'})
 
+
   def to_python(self, value):
     """Normalize data to a list of touples."""
 

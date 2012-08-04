@@ -6,10 +6,28 @@ if (jQuery) {
     $(document).ready(function () {
         $("a.publications").each(function (i) {
 
+            var authorsTemplate = function (authors) {
+
+                if (authors.size() == 0)
+                    return "";
+
+                if (authors.size() == 1)
+                    return authors[0];
+
+                var str = "";
+                for (var i = 0; i < authors.size() - 1; i++) {
+                    str += authors[i] + ", ";
+                }
+                return str + " and " + authors[authors.size() - 1];
+
+            }
+
             var publicationTemplate = function (publication) {
-                var title = $('<div>' + publication.title + '</div>').addClass("title");
-                var authors = $('<div>' + publication.author + '</div>').addClass("authors");
-                return ($('<div/>').addClass("publication wrapper").append(title).append(authors));
+                var title = $('<span>' + publication.title + '</span>').addClass("title");
+                var authors = $('<span>' + authorsTemplate(publication.authors) + '</span>').addClass("authors");
+                var within = $('<span>' + publication.within + '</span>').addClass("within");
+                var year = $('<span>' + publication.year + '</span>').addClass("year");
+                return ($('<div/>').addClass("publication wrapper").append(title, authors, within, year));
             }
 
 
