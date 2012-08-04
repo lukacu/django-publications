@@ -91,7 +91,7 @@ def generate_publication_object(entry, publication_update = None, people_merge =
     publication = Publication(type=publication_type["identifier"], title=entry['title'], year=entry['year'])
 
   publication.month=MONTHS_MAPPING.get(entry.get('month', "").lower(), None)
-  publication.within=entry.get('journal', entry.get('book_title', ""))
+  publication.within=entry.get('within', "")
   publication.publisher=entry.get('publisher', "")
   publication.volume=entry.get('volume', None)
   publication.number=entry.get('number', None)
