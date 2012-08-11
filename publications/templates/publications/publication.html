@@ -26,11 +26,11 @@
 {% if publication.abstract %}
 <div class="abstract">{{ publication.abstract }}</div>
 {% endif %}
-{% tags_for_object publication as keywords %}
-{% if keywords %}
-<div class="keywords">
-	{% for keyword in keywords %}
-		<a class="keyword" href="{% url publications-keyword keyword=keyword.slug %}">{{ keyword }}</a>
+{% tags_for_object publication as tags %}
+{% if tags %}
+<div class="tags">
+	{% for tag in tags %}
+		<a class="tag" href="{% url publications-tag tag=tag.slug %}">{{ tag }}</a>
 	{% endfor %}
 </div>
 {% endif %}

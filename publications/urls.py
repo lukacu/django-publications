@@ -15,7 +15,7 @@ urlpatterns = patterns('',
 	url(r'^(?P<publication_id>\d+)(?:/.*)?$', 'publications.views.publication', name='publication'),
 
 	# Keywords
-	url(r'^keyword/(?P<keyword>.+)/$', 'publications.views.keyword', name='publications-keyword'),
+	url(r'^tag/(?P<tag>.+)/$', 'publications.views.keyword', name='publications-keyword'),
 
 	# Person catalogue of publications
 	url(r'^person/$', 'publications.views.person', name='publications-person-list'),

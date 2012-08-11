@@ -83,7 +83,7 @@ def person(request, person_id = None, group = None):
     except ObjectDoesNotExist:
       raise Http404
 
-    candidates = Publication.objects.filter(public=True, role__person = author).order_by('-year', '-month', '-id')
+    candidates = Publication.objects.filter(public=True, authorship__person = author).order_by('-year', '-month', '-id')
 
     if group:
       candidates = candidates.filter(groups=group)
@@ -96,7 +96,7 @@ def person(request, person_id = None, group = None):
     return render_result(request, candidates, "Publications by %s" % author.full_name(), format, group)
 
   else:
-    people = Person.objects.annotate(count = Count('role__publication')).order_by('family_name', 'primary_name')
+    people = Person.objects.annotate(count = Count('authorship__publication')).order_by('family_name', 'primary_name')
 
     if group:
       people = people.filter(group=group)

@@ -8,7 +8,7 @@ __docformat__ = 'epytext'
 from django.contrib import admin
 from django import forms
 import publications.models
-from publications.models import Publication, Group, Role, Person, Metadata, Import
+from publications.models import Publication, Group, Authorship, Person, Metadata, Import
 from publications.fields import PeopleField
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -35,28 +35,20 @@ def merge_people(modeladmin, request, queryset):
 class PublicationForm(forms.ModelForm):
   class Meta:
     model = Publication
-  people_roles = PeopleField(label="People", max_length=1024, help_text = 'List of authors separated by semicolon. Both first-name last-name and last-name, first name forms can be used. Example: John Doe; Smith, David; William, Chris.')
+  people_authorship = PeopleField(label="People", max_length=1024, help_text = 'List of authors separated by semicolon. Both first-name last-name and last-name, first name forms can be used. Example: John Doe; Smith, David; William, Chris.')
 
   latitude = forms.FloatField(required=False)
-  # Step 2: Override the constructor to manually set the form's latitude and
-  # longitude fields if a Location instance is passed into the form
   def __init__(self, *args, **kwargs):
     super(PublicationForm, self).__init__(*args, **kwargs)
 
-    # Set the form fields based on the model object
     if kwargs.has_key('instance'):
       instance = kwargs['instance']
-      self.initial['people_roles'] = instance.people_as_string()
+      self.initial['people_authorship'] = instance.people_as_string()
 
-  # Step 3: Override the save method to manually set the model's latitude and
-  # longitude properties based on what was submitted from the form
   def save(self, commit=True):
     model = super(PublicationForm, self).save(commit=False)
 
-    model.set_people = self.cleaned_data['people_roles']
-    # Save the latitude and longitude based on the form fields
-    #model.set_people = self.cleaned_data['latitude']
-    #model.longitude = self.cleaned_data['longitude']
+    model.set_people = self.cleaned_data['people_authorship']
 
     if commit:
         model.save()
@@ -66,24 +58,24 @@ class PublicationForm(forms.ModelForm):
 class MetadataInline(admin.TabularInline):
     model = Metadata
 
-class RoleInline(admin.TabularInline):
-    model = Role
+class AuthorshipInline(admin.TabularInline):
+    model = Authorship
 
 class PublicationAdmin(admin.ModelAdmin):
   radio_fields = {"type": admin.HORIZONTAL}
   raw_id_fields = ["people"]
   list_display = ('type', 'first_author', 'title', 'year', 'within')
   list_display_links = ('title',)
-  search_fields = ('title', 'within', 'authors', 'keywords', 'year')
+  search_fields = ('title', 'within', 'authors', 'tags', 'year')
   fieldsets = (
     ("Basic information", {'fields': 
-      ('type', 'title', 'people_roles', 'abstract', 'note')}),
+      ('type', 'title', 'people_authorship', 'abstract', 'note')}),
     ("Publishing information", {'fields': 
       ('year', 'month', 'within', 'publisher', 'volume', 'number', 'pages')}),
     ("Resources", {'fields': 
       ('url', 'code', 'file', 'doi')}),
     ("Categoritzation", {'fields': 
-      ('keywords', 'public', 'groups')}),
+      ('tags', 'public', 'groups')}),
   )
   inlines = [MetadataInline]
   form = PublicationForm

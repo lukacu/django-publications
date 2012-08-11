@@ -151,7 +151,7 @@ def merge_people(people, pivot = None):
   for person in people:
     if person == pivot:
       continue
-    Role.objects.filter(person = person).update(person = pivot)
+    Authorship.objects.filter(person = person).update(person = pivot)
     person.delete()
 
 def determine_file_name(instance, filename):
@@ -275,7 +275,7 @@ class Person(models.Model):
   def get_absolute_url(self):
     return reverse("publications-person", kwargs={"person_id" : self.id })
 
-class Role(models.Model):
+class Authorship(models.Model):
   order = models.PositiveIntegerField(editable=False)
   person = models.ForeignKey("Person")
   publication = models.ForeignKey("Publication")
@@ -305,7 +305,7 @@ class Publication(models.Model):
   date_added = models.DateTimeField(_('date added'), default=datetime.now, editable = False, auto_now_add=True)
   date_modified = models.DateTimeField(_('date modified'), editable = False, auto_now = True, default=datetime.now)
   title = models.CharField(max_length=512)
-  people = models.ManyToManyField("Person", through='Role')
+  people = models.ManyToManyField("Person", through='Authorship')
   year = models.PositiveIntegerField(max_length=4)
   month = models.IntegerField(choices=MONTH_CHOICES, blank=True, null=True)
   within = models.CharField("Published in", max_length=256, blank=True)
@@ -314,7 +314,7 @@ class Publication(models.Model):
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True, null=True)
-  keywords = TagField(blank=True)
+  tags = TagField(blank=True)
   url = models.URLField(blank=True, verify_exists=False, verbose_name='URL', help_text='Link to PDF or a journal page.')
   code = models.URLField(blank=True, verify_exists=False, help_text='Link to page with code.')
   file = models.FileField(upload_to=determine_file_name, verbose_name='File', blank=True, null=True, help_text='The file resource attached to the entry. PDF format is preferred.')
@@ -332,7 +332,7 @@ class Publication(models.Model):
 
     if hasattr(self, "set_people"):
       i = 0
-      Role.objects.filter(publication = self).delete()
+      Authorship.objects.filter(publication = self).delete()
       for person in self.set_people:
         if type(person) is tuple:
           name = person[0].strip()
@@ -347,7 +347,7 @@ class Publication(models.Model):
           if not person:
             continue
           i += 1
-          r = Role(person = person, publication = self, order = i)
+          r = Authorship(person = person, publication = self, order = i)
           r.save()
         except ObjectDoesNotExist:
           pass
@@ -380,7 +380,6 @@ class Publication(models.Model):
 
     if hasattr(self, "set_tags"):
       Tag.objects.update_tags(self, " ".join([ '"%s"' % t for t in self.set_tags ]))
-      #self.keywords.set(*tags)
 
     files = getattr(self, "set_files", None)
     if files and len(files) > 0:
@@ -402,18 +401,14 @@ class Publication(models.Model):
       else:
         return self.title[:index] + '...'
 
-
-  def keywords_escaped(self):
-    return ", ".join([str(k) for k in Tag.objects.get_for_object(self)])
-
   def get_absolute_url(self):
     return reverse("publication", kwargs={"publication_id" : self.id })
 
   def authors(self):
-    return [role.person for role in Role.objects.filter(publication = self).order_by("order")]
+    return [author.person for author in Authorship.objects.filter(publication = self).order_by("order")]
 
   def first_author(self):
-    people = Role.objects.filter(publication=self).order_by("order")
+    people = Authorship.objects.filter(publication=self).order_by("order")
     try:
       return people[0].person
     except IndexError:
@@ -431,12 +426,12 @@ class Publication(models.Model):
     return author_identifier + str(self.year) + firstword
 
   def people_as_string(self):
-    roles = Role.objects.filter(publication = self).order_by("order")
-    return "; ".join([role.person.full_name_reverse() for role in roles])
+    authors = Authorship.objects.filter(publication = self).order_by("order")
+    return "; ".join([author.person.full_name_reverse() for author in authors])
 
   def to_dictionary(self, longfields=True):
     entry = {"title": self.title,
-             "authors": [p.person.full_name() for p in Role.objects.filter(publication=self).order_by("order")],
+             "authors": [p.person.full_name() for p in Authorship.objects.filter(publication=self).order_by("order")],
              "year": self.year}
 
     if self.within:
@@ -451,8 +446,8 @@ class Publication(models.Model):
       entry["pages"] = self.pages
     if self.month:
       entry["month"] = self.month
-    if self.keywords:
-      entry["keywords"] = self.keywords_escaped()
+    if self.tags:
+      entry["keywords"] = ", ".join([str(k) for k in Tag.objects.get_for_object(self)])
     if self.doi:
       entry["doi"] = self.doi
     if self.url:
