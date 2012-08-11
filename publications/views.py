@@ -48,7 +48,9 @@ def publication(request, publication_id):
     format = 'default'
   if format == "json":
     data = prepare_json(publication)
-    return HttpResponse(simplejson.dumps([data]), mimetype='application/json; charset=UTF-8')
+    response = HttpResponse(simplejson.dumps([data]), mimetype='application/json; charset=UTF-8')
+    response['Access-Control-Allow-Origin'] = "*"
+    return response
   elif format == 'default':
     try:
       return render_to_response('publications/publication_%s.html' % publication.type, {
@@ -251,7 +253,7 @@ def files(request, publication_id):
 
   if getattr(settings, 'PUBLICATIONS_USE_XSENDFILE', False):
     response = HttpResponse(mimetype='application/force-download')
-    response['X-Sendfile'] = smart_str(filepath_absolute)  
+    response['X-Sendfile'] = smart_str(filepath_absolute)
   else:
     response = HttpResponse(open(filepath_absolute, "r"), mimetype='application/force-download')
 
@@ -259,9 +261,6 @@ def files(request, publication_id):
   response['Content-Disposition'] = 'attachment; filename=%s%s' % (smart_str(publication.generate_identifier()), ext)
 
   return response
-
-
-
 
 
 def prepare_json(publication):
@@ -274,7 +273,7 @@ def prepare_json(publication):
 
   entry = {"title": publication.title, "year": publication.year,
     "authors": [author.full_name() for author in publication.authors()],
-    "within" : publication.within, "type" : publication.type, "url" : url}
+    "within" : publication.within, "publisher" : publication.publisher, "type" : publication.type, "url" : url}
 
   return entry
 
@@ -285,7 +284,9 @@ def render_result(request, publications, title, format, group):
     limit = max(1, getattr(settings, 'PUBLICATIONS_JSON_SIZE', 10))
     for publication in publications[0:limit]:
       data.append(prepare_json(publication))
-    return HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
+    response = HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
+    response['Access-Control-Allow-Origin'] = "*"
+    return response
   elif format == 'default':
     limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
 

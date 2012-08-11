@@ -9,28 +9,42 @@ if (jQuery) {
             var authorsTemplate = function (authors) {
 
                 if (authors.length == 0)
-                    return "";
+                    return $('<span />');
+
+                var wrapper = $('<div />').addClass("authors");
 
                 if (authors.length == 1)
-                    return authors[0];
+                    return wrapper.append($("<span />").addClass("person").text(authors[0]));
 
-                var str = "";
                 for (var i = 0; i < authors.length - 1; i++) {
-                    str += authors[i] + ", ";
+                    wrapper.append($("<span />").addClass("person").text(authors[i])).append(", ");
+
                 }
-                return str + " and " + authors[authors.length - 1];
+                return wrapper.append(" and ").append($("<span />").addClass("person").text( authors[authors.length - 1]));
 
             }
 
             var publicationTemplate = function (publication) {
-                var title = $('<a>' + publication.title + '</a>').addClass("title").attr("href", publication.url);
-                var authors = $('<span>' + authorsTemplate(publication.authors) + '</span>').addClass("authors");
-                var within = $('<span>' + publication.within + '</span>').addClass("within");
-                var year = $('<span>' + publication.year + '</span>').addClass("year");
-                return ($('<div/>').addClass("publication type_" + publication.type).append(title, authors, within, year));
+                var title = $("<div />").addClass("title").append($('<a>' + publication.title + '</a>').attr("href", publication.url));
+                var authors = authorsTemplate(publication.authors);
+                var published = $("<div />").addClass("published").text(
+                    (publication.within === '' ? "" : publication.within + ", ") +
+                    (publication.publisher === '' ? "" : publication.publisher + ", ")
+                        + publication.year);
+                return ($('<div/>').addClass("publication_inline publication_type_" + publication.type).append(title, authors, published));
             }
-
-
+/*
+            <div class="publication_inline publication_type_{{ publication.type }}">
+                <div class="title"><a href="{{ publication.get_absolute_url }}/{{ publication.title|slugify }}" class="title">{{ publication.title }}</a></div>
+                <div class="authors">
+{% for author in publication.authors %}
+                    <span class="person">
+{% if author.public %}<a href="{{ author.get_absolute_url }}/{{ author.full_name|slugify }}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
+{% endfor %}
+                </div>
+                <div class="published">{% if publication.within %}{{ publication.within }}, {% endif %}{% if publication.publisher %}{{ publication.publisher }}, {% endif %}{{ publication.year }}</div>
+            </div>
+            */
             var a = $(this);
             var queryParameters = {}, queryString = this.search.substring(1),
                 re = /([^&=]+)=([^&]*)/g, m;

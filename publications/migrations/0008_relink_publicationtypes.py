@@ -68,7 +68,7 @@ class Migration(DataMigration):
 
       for publication in orm.Publication.objects.all():
         t = int(publication.type)
-        if t < 0 or t > len(order)+1:
+        if t < 0 or t > len(order)-1:
           t = 12
         else:
           t = order[t]
