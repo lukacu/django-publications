@@ -8,7 +8,6 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
       db.rename_column('publications_publication', 'keywords', 'tags')
-      db.rename_column('publications_publication', 'people', 'authors')
       db.rename_table('publications_role', 'publications_authorship')
 
     def backwards(self, orm):
