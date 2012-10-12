@@ -275,6 +275,10 @@ class Person(models.Model):
   def get_absolute_url(self):
     return reverse("publications-person", kwargs={"person_id" : self.id })
 
+  def first_letter(self):
+    return self.family_name and self.family_name[0].upper() or ''
+
+
 class Authorship(models.Model):
   order = models.PositiveIntegerField(editable=False)
   person = models.ForeignKey("Person")

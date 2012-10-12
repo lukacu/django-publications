@@ -2,11 +2,15 @@
 {% load publicationtags %}
 {% block content %}
 	<h1>People</h1>
-	<ul id="people">
-	{% for person in people %}
+{% regroup people by first_letter as letter_list %}
+    {% for letter in letter_list %}
+    <h2 class="letter">{{ letter.grouper }}</h2>
+    <ul class="people">
+	{% for person in letter.list %}
 		<li class="person person_{{ person.id }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
 		<a href="{% url publications-person person_id=person.id %}/{{ person.full_name|slugify }}">{{ person.full_name_reverse }}</a><span class="count">{{ person.count }}</span>
 		</li>
 	{% endfor %}
-	</ul>
+    </ul>
+    {% endfor %}
 {% endblock %}
