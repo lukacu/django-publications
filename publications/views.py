@@ -1,4 +1,5 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
+import mimetypes
 from os.path import splitext
 from os.path import join, exists
 from posix import stat
@@ -18,6 +19,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from publications import resolve_publication_type, get_publications_exporter, list_export_formats
 from tagging.models import Tag, TaggedItem
+
+mimetypes.init()
 
 def keyword(request, keyword):
 
@@ -96,7 +99,8 @@ def person(request, person_id = None, group = None):
     return render_result(request, candidates, "Publications by %s" % author.full_name(), format, group)
 
   else:
-    people = Person.objects.annotate(count = Count('authorship__publication')).order_by('family_name', 'primary_name')
+
+    people = Person.objects.annotate(count = Count('authorship__publication')).filter(count__gt = 0).order_by('family_name', 'primary_name')
 
     if group:
       people = people.filter(group=group)
@@ -251,11 +255,13 @@ def files(request, publication_id):
 
   statinfo = stat(filepath_absolute)
 
+  mimetype = mimetypes.guess_type(filepath_absolute)
+
   if getattr(settings, 'PUBLICATIONS_USE_XSENDFILE', False):
-    response = HttpResponse(mimetype='application/force-download')
+    response = HttpResponse(mimetype=mimetype)
     response['X-Sendfile'] = smart_str(filepath_absolute)
   else:
-    response = HttpResponse(open(filepath_absolute, "r"), mimetype='application/force-download')
+    response = HttpResponse(open(filepath_absolute, "r"), mimetype=mimetype)
 
   response['Content-Length'] = statinfo.st_size
   response['Content-Disposition'] = 'attachment; filename=%s%s' % (smart_str(publication.generate_identifier()), ext)
