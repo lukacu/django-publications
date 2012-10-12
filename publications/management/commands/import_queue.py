@@ -20,7 +20,7 @@ def interactive_choose(message, choices):
 
 
 class Command(BaseCommand):
-  args = '[ guided_import | automatic_import | flush ]'
+  args = '[ guided | automatic | flush ]'
   help = 'Manage import queue'
 
   def handle(self, *args, **options):
@@ -30,11 +30,11 @@ class Command(BaseCommand):
     if args[0] == "flush":
       Import.objects.all().delete()
 
-    elif args[0] == "guided_import" or args[0] == "automatic_import":
+    elif args[0] == "guided" or args[0] == "automatic":
       queue = Import.objects.all()
       for entry in queue:
         print "Importing '%s'" % entry
-        if args[0] == "guided_import":
+        if args[0] == "guided":
           publication_update = None
           people_merge = None
         else:
