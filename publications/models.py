@@ -95,9 +95,11 @@ def generate_publication_object(entry, publication_update = None, people_merge =
   publication.publisher=entry.get('publisher', "")
   publication.volume=entry.get('volume', None)
   publication.number=entry.get('number', None)
+  publication.pages=entry.get('pages', None)
   publication.note=entry.get('note', "")
   publication.abstract=entry.get('abstract', "")
   publication.url=entry.get('url', "")
+  publication.code=entry.get('code', "")
   publication.doi=entry.get('doi', "")
 
   if len(people) > 0:
@@ -263,7 +265,7 @@ class Person(models.Model):
     return self.full_name_reverse()
 
   def identifier(self):
-    from publications.transcode import unicode_to_ascii
+    from publications_bibtex.transcode import unicode_to_ascii
     return unicode_to_ascii(self.family_name).replace("?", "_")
 
   def full_name(self):

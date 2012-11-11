@@ -745,7 +745,7 @@ class BibTeXProcessor:
       value = value.strip()
       m = re.match(r'([0-9]+) *-+ *([0-9]+)', value)
       if m:
-        return "%s--%s" % (m.group(1), m.group(2))
+        return "%s-%s" % (m.group(1), m.group(2))
       try:
         return str(int(value))
       except:
