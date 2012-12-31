@@ -36,7 +36,8 @@ def resolve_publication_type_identifier(id):
 def get_publication_type_choices():
   return [(t["identifier"], t["title"]) for t in __publication_types]
 
-register_publication_type("paper", "Paper", "An article in a journal or magazine, paper in conference proceedings, part of a book")
+register_publication_type("paper", "Paper", "A paper in conference proceedings")
+register_publication_type("article", "Journal article", "An article in a journal or magazine, part of a book")
 register_publication_type("book", "Book", "A book with an explicit publisher, booklet, or a thesis")
 register_publication_type("other", "Other", "Any other published content")
 register_publication_type("unpublished", "Unpublished", "A document having an author and title, but not formally published, technical report")
