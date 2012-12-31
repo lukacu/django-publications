@@ -22,10 +22,10 @@ from tagging.models import Tag, TaggedItem
 
 mimetypes.init()
 
-def keyword(request, keyword):
+def tag(request, tag):
 
   try:
-    tag = Tag.objects.get(slug = keyword)
+    tag = Tag.objects.get(slug = tag)
   except ObjectDoesNotExist:
     raise Http404
 
