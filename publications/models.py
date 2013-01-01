@@ -421,6 +421,8 @@ class Publication(models.Model):
       return None
 
   def generate_identifier(self):
+    from publications_bibtex.transcode import unicode_to_ascii
+
     first_author = self.first_author()
     if first_author:
       author_identifier = first_author.identifier()
@@ -429,7 +431,7 @@ class Publication(models.Model):
 
     firstword, restwords= self.title.split(' ',1)
 
-    return author_identifier + str(self.year) + firstword
+    return author_identifier + str(self.year) + unicode_to_ascii(firstword).replace("?", "_")
 
   def people_as_string(self):
     authors = Authorship.objects.filter(publication = self).order_by("order")
