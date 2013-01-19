@@ -66,7 +66,7 @@ class PublicationAdmin(admin.ModelAdmin):
   raw_id_fields = ["people"]
   list_display = ('type', 'first_author', 'title', 'year', 'within')
   list_display_links = ('title',)
-  search_fields = ('title', 'within', 'authors', 'tags', 'year')
+  search_fields = ('title', 'within', 'people', 'tags', 'year')
   fieldsets = (
     ("Basic information", {'fields': 
       ('type', 'title', 'people_authorship', 'abstract', 'note')}),
