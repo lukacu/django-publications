@@ -2,10 +2,16 @@
 <div class="publication_inline publication_type_{{ publication.type }}">
 <div class="title"><a href="{{ publication.get_absolute_url }}/{{ publication.title|slugify }}" class="title">{{ publication.title }}</a></div>
 <div class="authors">
-{% for author in publication.authors %}
-<span class="person">
-{% if author.public %}<a href="{{ author.get_absolute_url }}/{{ author.full_name|slugify }}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
+{% if publication.authors|length > 10 %}
+{% for author in publication.authors|slice:":9" %}
+<span class="person">{% if author.public %}<a href="{{ author.get_absolute_url }}/{{ author.full_name|slugify }}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}, {% endif %}
 {% endfor %}
+et al.
+{% else %}
+{% for author in publication.authors %}
+<span class="person">{% if author.public %}<a href="{{ author.get_absolute_url }}/{{ author.full_name|slugify }}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
+{% endfor %}
+{% endif %}
 </div>
 <div class="published">{% if publication.within %}{{ publication.within }}, {% endif %}{% if publication.publisher %}{{ publication.publisher }}, {% endif %}{{ publication.year }}</div>
 </div>
