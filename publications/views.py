@@ -265,6 +265,7 @@ def files(request, publication_id):
 
   response['Content-Length'] = statinfo.st_size
   response['Content-Disposition'] = 'attachment; filename=%s%s' % (smart_str(publication.generate_identifier()), ext)
+  response['Cache-Control'] = 'no-cache, must-revalidate'
 
   return response
 
