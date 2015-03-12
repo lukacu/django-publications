@@ -58,11 +58,23 @@ if (jQuery) {
                 if (authors.length == 1)
                     return wrapper.append($("<span />").addClass("person").text(authors[0]));
 
-                for (var i = 0; i < authors.length - 1; i++) {
-                    wrapper.append($("<span />").addClass("person").text(authors[i])).append(", ");
+                if (authors.length > 10) {
+
+                  for (var i = 0; i < 8; i++) {
+                      wrapper.append($("<span />").addClass("person").text(authors[i])).append(", ");
+                  }
+
+                  return wrapper.append($("<span />").addClass("person").text(authors[8])).append(" et al. ");
+
+                } else {
+
+                  for (var i = 0; i < authors.length - 1; i++) {
+                      wrapper.append($("<span />").addClass("person").text(authors[i])).append(", ");
+                  }
+
+                  return wrapper.append(" and ").append($("<span />").addClass("person").text( authors[authors.length - 1]));
 
                 }
-                return wrapper.append(" and ").append($("<span />").addClass("person").text( authors[authors.length - 1]));
 
             }
 

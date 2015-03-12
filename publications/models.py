@@ -251,7 +251,7 @@ class Group(models.Model):
 class Person(models.Model):
   primary_name = models.CharField(_('first name'), max_length=255, blank=False, null=False)
   family_name = models.CharField(_('family name'), max_length=255, blank=False, null=False)
-  url = models.URLField(blank=True, verify_exists=False, verbose_name='URL',
+  url = models.URLField(blank=True, verbose_name='URL',
     help_text='Home page of the person.')
   public = models.BooleanField(
     help_text='Has a public listing page for publications.', default=True)
@@ -321,8 +321,8 @@ class Publication(models.Model):
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True, null=True)
   tags = TagField(blank=True)
-  url = models.URLField(blank=True, verify_exists=False, verbose_name='URL', help_text='Link to PDF or a journal page.')
-  code = models.URLField(blank=True, verify_exists=False, help_text='Link to page with code.')
+  url = models.URLField(blank=True, verbose_name='URL', help_text='Link to PDF or a journal page.')
+  code = models.URLField(blank=True, help_text='Link to page with code.')
   file = models.FileField(upload_to=determine_file_name, verbose_name='File', blank=True, null=True, help_text='The file resource attached to the entry. PDF format is preferred.')
   doi = models.CharField(max_length=128, verbose_name='DOI', blank=True)
   abstract = models.TextField("Abstract", blank=True)
