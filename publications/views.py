@@ -6,10 +6,10 @@ from posix import stat
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext, loader
 from django.utils.encoding import smart_str
-from publications.models import Publication, Group, Person
+from publications.models import Publication, PublicationType, Group, Person
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
 from django.http import HttpResponse
@@ -17,10 +17,16 @@ from django.utils import simplejson
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
-from publications import resolve_publication_type, get_publications_exporter, list_export_formats
+from publications import get_publications_exporter, list_export_formats
 from tagging.models import Tag, TaggedItem
 
 mimetypes.init()
+
+PUBLICATION_ORDER = {
+  'date_desc': ['-year', '-month', '-id'],
+  'date_asc': ['+year', '+month', '-id']
+}
+
 
 def tag(request, tag):
 
@@ -158,11 +164,9 @@ def types(request, publication_type = None, group = None):
       raise Http404
 
   if publication_type:
-    ptype = resolve_publication_type(publication_type)
-    if ptype is None:
-      raise Http404
+    type = get_object_or_404(PublicationType, identifier=publication_type)
 
-    candidates = Publication.objects.filter(type=publication_type, public=True).order_by('-year', '-month', '-id')
+    candidates = Publication.objects.filter(publication_type=type, public=True).order_by('-year', '-month', '-id')
 
     if group:
       candidates = candidates.filter(groups=group)
@@ -175,16 +179,14 @@ def types(request, publication_type = None, group = None):
       return render_result(request, candidates, "Publications of type %s" % ptype["title"], format, group)
 
   else:
-    type_count = Publication.objects.filter(public=True).values('type').annotate(count = Count('type')).order_by()
+    type_count = Publication.objects.filter(public=True).values('publication_type').annotate(count = Count('publication_type')).order_by()
 
     if group:
       type_count = type_count.filter(groups=group)
 
     types = []
-    for t in type_count:
-      type = resolve_publication_type(t["type"])
-      if type:
-        types.append({"title" : type["title"], "identifier" : type["identifier"], "count": t["count"]})
+    for type in type_count:
+      types.append({"title" : type["title"], "identifier" : type["identifier"], "count": type["count"]})
 
     return render_to_response('publications/types.html', {
         'types': types,
@@ -296,7 +298,7 @@ def render_result(request, publications, title, format, group):
     return response
   elif format == 'default':
     limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
-
+    print publications
     paginator = Paginator(publications, limit)
 
     page = request.GET.get('page', 1)

@@ -8,7 +8,7 @@ __docformat__ = 'epytext'
 from django.contrib import admin
 from django import forms
 import publications.models
-from publications.models import Publication, Group, Authorship, Person, Metadata, Import
+from publications.models import Publication, PublicationType, Group, Authorship, Person, Metadata, Import
 from publications.fields import PeopleField
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -62,14 +62,14 @@ class AuthorshipInline(admin.TabularInline):
     model = Authorship
 
 class PublicationAdmin(admin.ModelAdmin):
-  radio_fields = {"type": admin.HORIZONTAL}
+  radio_fields = {"publication_type": admin.HORIZONTAL}
   raw_id_fields = ["people"]
-  list_display = ('type', 'first_author', 'title', 'year', 'within')
+  list_display = ('publication_type', 'first_author', 'title', 'year', 'within')
   list_display_links = ('title',)
   search_fields = ('title', 'within', 'people', 'tags', 'year')
   fieldsets = (
     ("Basic information", {'fields': 
-      ('type', 'title', 'people_authorship', 'abstract', 'note')}),
+      ('publication_type', 'title', 'people_authorship', 'abstract', 'note')}),
     ("Publishing information", {'fields': 
       ('year', 'month', 'within', 'publisher', 'volume', 'number', 'pages')}),
     ("Resources", {'fields': 
@@ -149,6 +149,9 @@ class PublicationAdmin(admin.ModelAdmin):
 class GroupAdmin(admin.ModelAdmin):
   list_display = ('identifier', 'title', 'public')
 
+class PublicationTypeAdmin(admin.ModelAdmin):
+  list_display = ('identifier', 'title', 'description', 'weight')
+
 class PersonAdmin(admin.ModelAdmin):
   list_display = ('family_name', 'primary_name' , 'url', 'public', 'group')
   list_display_links = ('primary_name', 'family_name',)
@@ -197,3 +200,4 @@ class PersonAdmin(admin.ModelAdmin):
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Group, GroupAdmin)
 admin.site.register(Person, PersonAdmin)
+admin.site.register(PublicationType, PublicationTypeAdmin)

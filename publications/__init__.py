@@ -4,43 +4,8 @@ __docformat__ = 'epytext'
 
 from django.conf import settings
 
-__publication_types_mapping = {}
-__publication_types = []
-
 __publication_importers = {}
 __publication_exporters = {}
-
-def register_publication_type(identifier, title, description):
-  id = len(__publication_types)
-  __publication_types.append({ "identifier" : identifier, "title" : title, "description" : description, "id" : id})
-  __publication_types_mapping[identifier] = id
-
-def resolve_publication_type(identifier):
-  if type(identifier) == int:
-    if identifier < 0 or identifier >= len(__publication_types):
-      return None
-    return __publication_types[identifier]
-  else:
-    i = __publication_types_mapping.get(identifier, None)
-    if i is None:
-      return None
-    return __publication_types[i]
-
-def resolve_publication_type_identifier(id):
-  type = resolve_publication_type(id)
-  if type:
-    return type["identifier"]
-  else:
-    return "other"
-
-def get_publication_type_choices():
-  return [(t["identifier"], t["title"]) for t in __publication_types]
-
-register_publication_type("paper", "Paper", "A paper in conference proceedings")
-register_publication_type("article", "Journal article", "An article in a journal or magazine, part of a book")
-register_publication_type("book", "Book", "A book with an explicit publisher, booklet, or a thesis")
-register_publication_type("other", "Other", "Any other published content")
-register_publication_type("unpublished", "Unpublished", "A document having an author and title, but not formally published, technical report")
 
 def get_publications_exporter(identifier):
   return __publication_exporters.get(identifier, None)

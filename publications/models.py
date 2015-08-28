@@ -10,7 +10,6 @@ from django.core.files import File
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from os.path import exists, splitext, join, basename
-from publications import get_publication_type_choices, resolve_publication_type
 from tagging.fields import TagField
 from tagging.models import Tag
 
@@ -280,6 +279,15 @@ class Person(models.Model):
   def first_letter(self):
     return self.family_name and self.family_name[0].upper() or ''
 
+class PublicationType(models.Model):
+  identifier = models.CharField("Identifier", max_length=128)
+  title = models.CharField("Title", max_length=128)
+  description = models.TextField("Description", blank=True)
+  weight = models.IntegerField(default=0)
+
+  def __unicode__(self):
+    return self.title
+
 
 class Authorship(models.Model):
   order = models.PositiveIntegerField(editable=False)
@@ -307,7 +315,7 @@ class Publication(models.Model):
   class Meta:
     ordering = ['-year', '-month', '-id']
 
-  type = models.CharField("Publication type", choices=get_publication_type_choices(), blank=False, null=False, max_length=16)
+  publication_type = models.ForeignKey("PublicationType", null=True)
   date_added = models.DateTimeField(_('date added'), default=datetime.now, editable = False, auto_now_add=True)
   date_modified = models.DateTimeField(_('date modified'), editable = False, auto_now = True, default=datetime.now)
   title = models.CharField(max_length=512)
@@ -328,6 +336,9 @@ class Publication(models.Model):
   abstract = models.TextField("Abstract", blank=True)
   public = models.BooleanField(help_text='To hide a publication remove this flag.', default=True)
   groups = models.ManyToManyField(Group)
+
+  def type(self):
+    return self.publication_type
 
   def save(self, *args, **kwargs):
 
