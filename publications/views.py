@@ -23,19 +23,16 @@ from tagging.models import Tag, TaggedItem
 mimetypes.init()
 
 PUBLICATION_ORDER = {
-  'date_desc': ['-year', '-month', '-id'],
-  'date_asc': ['+year', '+month', '-id']
+  'date': ('-year', '-month', '-id'),
+  'type': ('publication_type__weight', '-year', '-month', '-id')
 }
 
-
 def tag(request, tag):
+  tag = get_object_or_404(Tag, slug = tag)
 
-  try:
-    tag = Tag.objects.get(slug = tag)
-  except ObjectDoesNotExist:
-    raise Http404
+  order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
 
-  candidates = TaggedItem.objects.get_by_model(Publication.objects.filter(public=True).order_by('-year', '-month', '-id'), tag)
+  candidates = TaggedItem.objects.get_by_model(Publication.objects.filter(public=True).order_by(*order_by), tag)
 
   if 'format' in request.GET:
     format = request.GET['format']
@@ -46,10 +43,8 @@ def tag(request, tag):
 
 
 def publication(request, publication_id):
-  try:
-    publication = Publication.objects.get(pk=publication_id)
-  except ObjectDoesNotExist:
-    raise Http404
+
+  publication = get_object_or_404(Publication, pk=publication_id)
 
   if 'format' in request.GET:
     format = request.GET['format']
@@ -80,21 +75,15 @@ def publication(request, publication_id):
 
 def person(request, person_id = None, group = None):
 
-  if group:
-    try:
-      group = Group.objects.get(identifier__iexact=group)
-    except ObjectDoesNotExist:
-      raise Http404
-
   if person_id:
-    try:
-      author = Person.objects.get(pk = person_id)
-    except ObjectDoesNotExist:
-      raise Http404
+    author = get_object_or_404(Person, pk = person_id)
 
-    candidates = Publication.objects.filter(public=True, authorship__person = author).order_by('-year', '-month', '-id')
+    order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
+
+    candidates = Publication.objects.filter(public=True, authorship__person = author).order_by(*order_by)
 
     if group:
+      group = get_object_or_404(Group, identifier__iexact=group)
       candidates = candidates.filter(groups=group)
 
     if 'format' in request.GET:
@@ -122,16 +111,13 @@ def years(request, year = None, group = None):
   if not group and getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
     group = settings.PUBLICATIONS_DEFAULT_GROUP
 
-  if group:
-    try:
-      group = Group.objects.get(identifier__iexact=group)
-    except ObjectDoesNotExist:
-      raise Http404
+  order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
 
   if year:
-    candidates = Publication.objects.filter(year=year, public=True).order_by('-year', '-month', '-id')
+    candidates = Publication.objects.filter(year=year, public=True).order_by(*order_by)
 
     if group:
+      group = get_object_or_404(Group, identifier__iexact=group)
       candidates = candidates.filter(groups=group)
 
     if 'format' in request.GET:
@@ -145,6 +131,7 @@ def years(request, year = None, group = None):
     years = Publication.objects.filter(public=True).values('year').annotate(count = Count('year')).order_by()
 
     if group:
+      group = get_object_or_404(Group, identifier__iexact=group)
       years = years.filter(groups=group)
 
     return render_to_response('publications/years.html', {
@@ -163,10 +150,12 @@ def types(request, publication_type = None, group = None):
     except ObjectDoesNotExist:
       raise Http404
 
+  order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
+
   if publication_type:
     type = get_object_or_404(PublicationType, identifier=publication_type)
 
-    candidates = Publication.objects.filter(publication_type=type, public=True).order_by('-year', '-month', '-id')
+    candidates = Publication.objects.filter(publication_type=type, public=True).order_by(*order_by)
 
     if group:
       candidates = candidates.filter(groups=group)
@@ -176,17 +165,18 @@ def types(request, publication_type = None, group = None):
     else:
       format = 'default'
 
-      return render_result(request, candidates, "Publications of type %s" % ptype["title"], format, group)
+      return render_result(request, candidates, "Publications of type %s" % type.title, format, group)
 
   else:
-    type_count = Publication.objects.filter(public=True).values('publication_type').annotate(count = Count('publication_type')).order_by()
+    type_count = Publication.objects.filter(public=True).values('publication_type', 'publication_type__identifier', 'publication_type__title').annotate(count = Count('publication_type')).order_by()
 
     if group:
       type_count = type_count.filter(groups=group)
 
     types = []
     for type in type_count:
-      types.append({"title" : type["title"], "identifier" : type["identifier"], "count": type["count"]})
+      print type
+      types.append({"title" : type["publication_type__title"], "identifier" : type["publication_type__identifier"], "count": type["count"]})
 
     return render_to_response('publications/types.html', {
         'types': types,
@@ -198,17 +188,14 @@ def recent(request, group = None):
   if not group and getattr(settings, 'PUBLICATIONS_DEFAULT_GROUP', None):
     group = settings.PUBLICATIONS_DEFAULT_GROUP
 
-  if group:
-    try:
-      group = Group.objects.get(identifier__iexact=group)
-    except ObjectDoesNotExist:
-      raise Http404
-
   limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
 
-  candidates = Publication.objects.filter(public=True).order_by('-year', '-month', '-id')
+  order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
+
+  candidates = Publication.objects.filter(public=True).order_by(*order_by)
 
   if group:
+    group = get_object_or_404(Group, identifier__iexact=group)
     candidates = candidates.filter(groups=group)
 
   if 'format' in request.GET:
@@ -220,14 +207,11 @@ def recent(request, group = None):
 
 def groups(request, group = None):
 
-  if group:
-    try:
-      group = Group.objects.get(identifier__iexact=group)
-    except ObjectDoesNotExist:
-      raise Http404
+  order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
 
   if group:
-    candidates = Publication.objects.filter(public=True, groups = group).order_by('-year', '-month', '-id')
+    group = get_object_or_404(Group, identifier__iexact=group)
+    candidates = Publication.objects.filter(public=True, groups = group).order_by(*order_by)
 
     format = request.GET.get('format', 'default')
 
@@ -241,11 +225,8 @@ def groups(request, group = None):
       }, context_instance=RequestContext(request))
 
 def files(request, publication_id):
-  try:
-    publication = Publication.objects.get(pk=publication_id)
-  except ObjectDoesNotExist:
-    raise Http404
-
+  
+  publication = get_object_or_404(Publication, pk=publication_id)
   filepath = publication.file.__unicode__()
 
   name, ext = splitext(filepath)
@@ -298,7 +279,6 @@ def render_result(request, publications, title, format, group):
     return response
   elif format == 'default':
     limit = getattr(settings, 'PUBLICATIONS_PAGE_SIZE', 20)
-    print publications
     paginator = Paginator(publications, limit)
 
     page = request.GET.get('page', 1)
