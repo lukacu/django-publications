@@ -335,7 +335,7 @@ class Publication(models.Model):
   doi = models.CharField(max_length=128, verbose_name='DOI', blank=True)
   abstract = models.TextField("Abstract", blank=True)
   public = models.BooleanField(help_text='To hide a publication remove this flag.', default=True)
-  groups = models.ManyToManyField(Group)
+  groups = models.ManyToManyField(Group, blank=True)
 
   def type(self):
     return self.publication_type
