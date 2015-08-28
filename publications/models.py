@@ -345,6 +345,9 @@ class Publication(models.Model):
     # In case we do not have a primary key
 
     if not self.pk:
+      if self.file:
+        self.set_files = [self.file]
+        self.file = None
       super(Publication, self).save(*args, **kwargs)
 
     if hasattr(self, "set_people"):
@@ -398,12 +401,13 @@ class Publication(models.Model):
     if hasattr(self, "set_tags"):
       Tag.objects.update_tags(self, " ".join([ '"%s"' % t for t in self.set_tags ]))
 
-    files = getattr(self, "set_files", None)
-    if files and len(files) > 0:
-      filename = files[0]
-      if exists(filename):
-        f = open(filename)
-        self.file = File(f)
+    files = getattr(self, "set_files", [])
+    if len(files) > 0:
+      fileobj = files[0]
+      if type(fileobj) is str and exists(fileobj):
+        self.file = File(open(fileobj))
+      else:
+        self.file = fileobj
 
     super(Publication, self).save(*args, **kwargs)
 
