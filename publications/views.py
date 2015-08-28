@@ -175,7 +175,6 @@ def types(request, publication_type = None, group = None):
 
     types = []
     for type in type_count:
-      print type
       types.append({"title" : type["publication_type__title"], "identifier" : type["publication_type__identifier"], "count": type["count"]})
 
     return render_to_response('publications/types.html', {
