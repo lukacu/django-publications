@@ -338,7 +338,7 @@ class Publication(models.Model):
   groups = models.ManyToManyField(Group, blank=True)
 
   def type(self):
-    return self.publication_type
+    return self.publication_type.identifier
 
   def save(self, *args, **kwargs):
 
