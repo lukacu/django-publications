@@ -45,7 +45,7 @@ class RenderPublicationInline(template.Node):
   def render(self, context):
     try:
       entry = self.variable.resolve(context)
-      ft = entry.type
+      ft = entry.publication_type.identifier
       tt = self.template
       try:
         return loader.render_to_string("publications/inline_%s_%s.html" % (tt, ft), {'publication' : entry}, context)

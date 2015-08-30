@@ -57,7 +57,7 @@ def publication(request, publication_id):
     return response
   elif format == 'default':
     try:
-      return render_to_response('publications/publication_%s.html' % publication.type, {
+      return render_to_response('publications/publication_%s.html' % publication.type(), {
           'publication': publication, 'title' : publication.title, 'exporters' : list_export_formats()
         }, context_instance=RequestContext(request))
     except loader.TemplateDoesNotExist:
@@ -262,7 +262,7 @@ def prepare_json(publication):
 
   entry = {"title": publication.title, "year": publication.year,
     "authors": [author.full_name() for author in publication.authors()],
-    "within" : publication.within, "publisher" : publication.publisher, "type" : publication.type, "url" : url}
+    "within" : publication.within, "publisher" : publication.publisher, "type" : publication.type(), "url" : url}
 
   return entry
 
