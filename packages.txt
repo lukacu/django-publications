@@ -1,0 +1,14 @@
+python
+python-dev
+python-pip
+python-imaging
+python-setuptools
+python-wheel
+build-essential
+git
+postgresql-client
+libpq-dev
+libxml2-dev
+libxslt1-dev
+libffi-dev
+
