@@ -6,10 +6,9 @@ A Django app for managing scientific publications. A working setup of this fork 
 Requirements
 ------------
 
-* python >= 2.5.0
-* django >= 1.3.0
-* django-tagging (with slug support, like [this fork](https://github.com/lukacu/django-tagging))
-* South
+* python >= 2.8.0
+* django >= 1.8.0
+* django-taggit >= 0.22.1
 
 The app has been tested with the above versions, but older versions might also work.
 

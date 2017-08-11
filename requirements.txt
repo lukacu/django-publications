@@ -1,5 +1,4 @@
 Django==1.8
-psycopg2==2.5.2
 django-taggit==0.22.1
 django-imagekit
 django-extensions
