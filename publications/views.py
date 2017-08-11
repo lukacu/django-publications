@@ -1,5 +1,5 @@
 # -*- Mode: python; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
-import mimetypes
+import mimetypes, json
 from os.path import splitext
 from os.path import join, exists
 from posix import stat
@@ -12,13 +12,11 @@ from django.utils.encoding import smart_str
 from publications.models import Publication, PublicationType, Group, Person
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
-from django.http import HttpResponse
-from django.utils import simplejson
+from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from publications import get_publications_exporter, list_export_formats
-from tagging.models import Tag, TaggedItem
 
 mimetypes.init()
 
@@ -28,11 +26,12 @@ PUBLICATION_ORDER = {
 }
 
 def tag(request, tag):
-  tag = get_object_or_404(Tag, slug = tag)
+  #tag = get_object_or_404(Tag, slug = tag)
 
   order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
 
-  candidates = TaggedItem.objects.get_by_model(Publication.objects.filter(public=True).order_by(*order_by), tag)
+  candidates = Publication.objects.filter(public=True, tags__name=tag).order_by(*order_by)
+  #candidates = TaggedItem.objects.get_by_model(Publication.objects.filter(public=True).order_by(*order_by), tag)
 
   if 'format' in request.GET:
     format = request.GET['format']
@@ -52,7 +51,7 @@ def publication(request, publication_id):
     format = 'default'
   if format == "json":
     data = prepare_json(publication)
-    response = HttpResponse(simplejson.dumps([data]), mimetype='application/json; charset=UTF-8')
+    response = JsonResponse([data])
     response['Access-Control-Allow-Origin'] = "*"
     return response
   elif format == 'default':
@@ -224,7 +223,7 @@ def groups(request, group = None):
       }, context_instance=RequestContext(request))
 
 def files(request, publication_id):
-  
+
   publication = get_object_or_404(Publication, pk=publication_id)
   filepath = publication.file.__unicode__()
 
@@ -243,7 +242,7 @@ def files(request, publication_id):
     response = HttpResponse(mimetype=mimetype)
     response['X-Sendfile'] = smart_str(filepath_absolute)
   else:
-    response = HttpResponse(open(filepath_absolute, "r"), mimetype=mimetype)
+    response = HttpResponse(open(filepath_absolute, "r"), content_type=mimetype)
 
   response['Content-Length'] = statinfo.st_size
   response['Content-Disposition'] = 'attachment; filename=%s%s' % (smart_str(publication.generate_identifier()), ext)
@@ -273,7 +272,7 @@ def render_result(request, publications, title, format, group):
     limit = max(1, getattr(settings, 'PUBLICATIONS_JSON_SIZE', 10))
     for publication in publications[0:limit]:
       data.append(prepare_json(publication))
-    response = HttpResponse(simplejson.dumps(data), mimetype='application/json; charset=UTF-8')
+    response = JsonResponse(data)
     response['Access-Control-Allow-Origin'] = "*"
     return response
   elif format == 'default':

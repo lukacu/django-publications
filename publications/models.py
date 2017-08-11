@@ -10,8 +10,7 @@ from django.core.files import File
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from os.path import exists, splitext, join, basename
-from tagging.fields import TagField
-from tagging.models import Tag
+from taggit.managers import TaggableManager
 
 # names shown in admin area
 MONTH_CHOICES = (
@@ -316,11 +315,11 @@ class Publication(models.Model):
     ordering = ['-year', '-month', '-id']
 
   publication_type = models.ForeignKey("PublicationType", null=True)
-  date_added = models.DateTimeField(_('date added'), default=datetime.now, editable = False, auto_now_add=True)
-  date_modified = models.DateTimeField(_('date modified'), editable = False, auto_now = True, default=datetime.now)
+  date_added = models.DateTimeField(_('date added'), editable = False, auto_now_add=True)
+  date_modified = models.DateTimeField(_('date modified'), editable = False, auto_now = True)
   title = models.CharField(max_length=512)
   people = models.ManyToManyField("Person", through='Authorship')
-  year = models.PositiveIntegerField(max_length=4)
+  year = models.PositiveIntegerField()
   month = models.IntegerField(choices=MONTH_CHOICES, blank=True, null=True)
   within = models.CharField("Published in", max_length=256, blank=True)
   publisher = models.CharField(max_length=256, blank=True)
@@ -328,7 +327,7 @@ class Publication(models.Model):
   number = models.CharField(max_length=32,blank=True, null=True, verbose_name='Issue number')
   pages = PagesField(max_length=32, blank=True)
   note = models.CharField(max_length=256, blank=True, null=True)
-  tags = TagField(blank=True)
+  tags = TaggableManager()
   url = models.URLField(blank=True, verbose_name='URL', help_text='Link to PDF or a journal page.')
   code = models.URLField(blank=True, help_text='Link to page with code.')
   file = models.FileField(upload_to=determine_file_name, verbose_name='File', blank=True, null=True, help_text='The file resource attached to the entry. PDF format is preferred.')
@@ -399,7 +398,7 @@ class Publication(models.Model):
         m.save()
 
     if hasattr(self, "set_tags"):
-      Tag.objects.update_tags(self, " ".join([ '"%s"' % t for t in self.set_tags ]))
+      self.tags.set(self.set_tags)
 
     files = getattr(self, "set_files", [])
     if len(files) > 0:
@@ -470,7 +469,7 @@ class Publication(models.Model):
     if self.month:
       entry["month"] = self.month
     if self.tags:
-      entry["keywords"] = ", ".join([str(k) for k in Tag.objects.get_for_object(self)])
+      entry["keywords"] = ", ".join([str(k) for k in self.tags.all()])
     if self.doi:
       entry["doi"] = self.doi
     if self.url:
@@ -510,7 +509,7 @@ class Import(models.Model):
   source = models.CharField(max_length=64, editable = False)
   title = models.CharField(max_length=255, editable = False)
   data = models.TextField(blank = False, editable = False)
-  date_added = models.DateTimeField(default=datetime.now, editable = False, auto_now_add=True)
+  date_added = models.DateTimeField(editable = False, auto_now_add=True)
 
   def __init__(self, *args, **kwargs):
     if kwargs.has_key('data') and type(kwargs['data']) != str:

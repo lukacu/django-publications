@@ -35,6 +35,7 @@ def merge_people(modeladmin, request, queryset):
 class PublicationForm(forms.ModelForm):
   class Meta:
     model = Publication
+    fields = '__all__'
   people_authorship = PeopleField(label="People", max_length=1024, help_text = 'List of authors separated by semicolon. Both first-name last-name and last-name, first name forms can be used. Example: John Doe; Smith, David; William, Chris.')
 
   latitude = forms.FloatField(required=False)
@@ -68,13 +69,13 @@ class PublicationAdmin(admin.ModelAdmin):
   list_display_links = ('title',)
   search_fields = ('title', 'within', 'people', 'tags', 'year')
   fieldsets = (
-    ("Basic information", {'fields': 
+    ("Basic information", {'fields':
       ('publication_type', 'title', 'people_authorship', 'abstract', 'note')}),
-    ("Publishing information", {'fields': 
+    ("Publishing information", {'fields':
       ('year', 'month', 'within', 'publisher', 'volume', 'number', 'pages')}),
-    ("Resources", {'fields': 
+    ("Resources", {'fields':
       ('url', 'code', 'file', 'doi')}),
-    ("Categoritzation", {'fields': 
+    ("Categoritzation", {'fields':
       ('tags', 'public', 'groups')}),
   )
   inlines = [MetadataInline]
@@ -93,8 +94,8 @@ class PublicationAdmin(admin.ModelAdmin):
         errors["importer"].append('This field is required.')
       else:
         importer = get_publications_importer(request.POST['importer'])
-        if importer:      
- 
+        if importer:
+
           publications = []
           importer.import_from_string(request.POST['publications'], lambda x : publications.append(x), lambda x : errors["publications"].append(x))
 

@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load publicationtags %}
-{% load tagging_tags %}
 {% block content %}
 <div class="publication publication_type_{{ publication.type }}">
 <h1>{{ publication.title }}</h1>
@@ -8,10 +7,10 @@
 {% if user.is_authenticated %}
 <ul class="tools">
 {% if perms.publications.change_publication %}
-<li><a href="{% url admin:publications_publication_change publication.pk %}">Edit</a></li>
+<li><a href="{% url "admin:publications_publication_change" publication.pk %}">Edit</a></li>
 {% endif %}
 {% if perms.publications.delete_publication %}
-<li><a href="{% url admin:publications_publication_delete publication.pk %}">Delete</a></li>
+<li><a href="{% url "admin:publications_publication_delete" publication.pk %}">Delete</a></li>
 {% endif %}
 </ul>
 {% endif %}
@@ -26,20 +25,20 @@
 {% if publication.abstract %}
 <div class="abstract">{{ publication.abstract }}</div>
 {% endif %}
-{% tags_for_object publication as tags %}
-{% if tags %}
-<div class="tags">
-	{% for tag in tags %}
-		<a class="tag" href="{% url publications-tag tag=tag.slug %}">{{ tag }}</a>
-	{% endfor %}
-</div>
+
+{% if publication.tags.count %}
+    <div class="tags">
+    {% for tag in publication.tags.all %}
+    <a class="tag" href="{% url "publications-tag" tag %}">{{ tag }}</a>
+    {% endfor %}
+	</div>
 {% endif %}
 <div class="actions">
 <h2>Actions</h2>
 <ul>
 {% if publication.code %}<li><a class="link" href="{{ publication.code }}">Access code</a></li>{% endif %}
 {% if publication.url %}<li><a class="link" rel="external" href="{{ publication.url }}">Go to URL</a></li>{% endif %}
-{% if publication.file %}<li><a class="file" href="{% url publication-files publication_id=publication.id %}">Download file</a></li>{% endif %}
+{% if publication.file %}<li><a class="file" href="{% url "publication-files" publication_id=publication.id %}">Download file</a></li>{% endif %}
 {% if publication.doi %}<li><a class="doi" rel="external" href="http://dx.doi.org/{{ publication.doi }}">Resolve DOI</a></li>{% endif %}
 {% for exporter in exporters %}
 <li><a class="exporter" href="{{ publication.get_absolute_url }}?format={{ exporter.identifier }}">Export to {{ exporter.name }}</a></li>

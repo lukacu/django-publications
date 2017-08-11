@@ -201,7 +201,7 @@ class BibTeXExporter:
 
 
   def export_to_response(self, publications):
-    response = HttpResponse(self.export_to_string(publications), mimetype='application/x-bibtex; charset=UTF-8')
+    response = HttpResponse(self.export_to_string(publications), content_type='application/x-bibtex')
     if not isinstance(publications, collections.Iterable):
       response["Content-Disposition"] = "filename=%s.bib" % (self._bibtex_key_base(publications))
     return response

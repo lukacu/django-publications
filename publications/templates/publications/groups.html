@@ -5,7 +5,7 @@
 	<ul id="groups">
 	{% for group in groups %}
 		<li class="group group_{{ group.identifier }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
-		<a href="{% url publications-group group=group.identifier %}">{{ group.title }}</a><span class="count">{{ group.count }}</span>
+		<a href="{% url "publications-group" group=group.identifier %}">{{ group.title }}</a><span class="count">{{ group.count }}</span>
 		</li>
 	{% endfor %}
 	</ul>

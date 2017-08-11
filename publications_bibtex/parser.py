@@ -51,7 +51,7 @@ def int_to_roman(input):
    if type(input) != type(1):
       raise TypeError, "expected integer, got %s" % type(input)
    if not 0 < input < 4000:
-      raise ValueError, "Argument must be between 1 and 3999"   
+      raise ValueError, "Argument must be between 1 and 3999"
    ints = (1000, 900,  500, 400, 100,  90, 50,  40, 10,  9,   5,  4,   1)
    nums = ('M',  'CM', 'D', 'CD','C', 'XC','L','XL','X','IX','V','IV','I')
    result = ""
@@ -64,7 +64,7 @@ def int_to_roman(input):
 def roman_to_int(input):
    """
    Convert a roman numeral to an integer.
-   
+
    >>> r = range(1, 4000)
    >>> nums = [int_to_roman(i) for i in r]
    >>> ints = [roman_to_int(n) for n in nums]
@@ -215,10 +215,10 @@ class BibTeXParser:
       elif self.state == 4:
         start = self.position
         expect = [" ", "\t", "\n", "\r", "="]
-        if first: 
+        if first:
           expect.append(",") # in case this can also be the key
 
-        if not self._advanceTo(expect): 
+        if not self._advanceTo(expect):
           if first:
             self._error("Expected '=' or ','")
           else:
@@ -226,11 +226,11 @@ class BibTeXParser:
           return None;
         key = self.raw[start : self.position]
 
-        if entry_type == "": 
+        if entry_type == "":
           self._error("Expected field key")
           return None
 
-        if not self._advance(): 
+        if not self._advance():
           if first:
             self._error("Expected '=' or ','")
           else:
@@ -239,7 +239,7 @@ class BibTeXParser:
 
         c = self._peek()
 
-        if c == ",": 
+        if c == ",":
           if not first:
             self._error("Entry key not expected here")
             return None
@@ -258,14 +258,14 @@ class BibTeXParser:
           self._error("Expected '='")
           return None
 
-        if not self._validateNext("="): 
+        if not self._validateNext("="):
           self._error("Expected '='")
           return None
-        
+
         if not self._advance():
           self._error("Expected field value")
           return None
-        
+
         self.state = 6;
         continue
       # start processing field value
@@ -291,7 +291,7 @@ class BibTeXParser:
         if not self._advanceTo(["{", "}"]):
           self._error("Expected '}'")
           return None
-        
+
 
         c = self._peek(-1);
 
@@ -304,7 +304,7 @@ class BibTeXParser:
           brackets = brackets + 1
           continue
 
-        if c == "}": 
+        if c == "}":
           brackets = brackets - 1;
           if brackets == 0:
             value = self.raw[start : self.position - 1];
@@ -315,7 +315,7 @@ class BibTeXParser:
         continue
       # find matching "
       elif self.state == 8:
-        if not self._advanceTo(["\""]): 
+        if not self._advanceTo(["\""]):
           self._error("Expected '\"'")
           return None
 
@@ -346,7 +346,7 @@ class BibTeXParser:
 
         continue
       # finish processing field
-      elif self.state == 10:  
+      elif self.state == 10:
         if not self._advance():
           self._error("Expected '}' or ','")
           return None
@@ -404,9 +404,9 @@ class BibTeXParser:
       c = self._peek()
       if (c == None):
         return False
-      if c in allowed: 
+      if c in allowed:
         self._pop()
-        continue 
+        continue
       return True
 
   def _advanceTo(self, allowed = [" ", "\t", "\n", "\r"]):
@@ -424,10 +424,10 @@ class BibTeXParser:
   def _validateNext(self, allowed = " "):
     if self._eos(1):
       return False
-    
+
     c = self._pop()
     if type(allowed) == list:
-      for a in allowed: 
+      for a in allowed:
         if c == a:
           return True
     else:
@@ -438,22 +438,22 @@ class BibTeXParser:
   def _requireNext(self, allowed = " "):
 
     if self._eos(1):
-      if type(allowed) == list: 
+      if type(allowed) == list:
         expected = "', '".join(allowed)
       else:
         expected = allowed
       self._error("Expected 'expected' but end of input found")
-    
+
     c = self._pop()
     if type(allowed) == list:
-      for a in allowed: 
+      for a in allowed:
         if (c == a):
           return True;
     else:
       if (c == allowed):
         return True;
 
-    if type(allowed) == list: 
+    if type(allowed) == list:
       expected = "', '".join(allowed)
     else:
       expected = allowed
@@ -496,10 +496,10 @@ class BibTeXParser:
   def parsePeople(self, raw):
 
     auth = explode(" and ", raw);
- 
-    result = list();  
 
-    for value in auth: 
+    result = list();
+
+    for value in auth:
       r = parsePerson(trim(value));
       if empty(r):
         continue
@@ -571,7 +571,7 @@ BIBTEX_TYPES = {
     },
 "booklet" : {"required" : {"title"},
     "optional" : {"author", "howpublished", "address", "month", "year", "note", "url"},
-    "description" : "A work that is printed and bound, but without a named publisher or sponsoring institution.", 
+    "description" : "A work that is printed and bound, but without a named publisher or sponsoring institution.",
     "name" : "Booklet"
     },
 "conference" : {"required" : {"author", "title", "booktitle", "year"},
@@ -678,7 +678,7 @@ class BibTeXProcessor:
 
     missing = set(required) ^ (set(keys) & set(required));
 
-    for key in missing: 
+    for key in missing:
       self._error("Missing required field '%s'" % key)
       error = True
 
@@ -686,7 +686,7 @@ class BibTeXProcessor:
     entry = result
     result = {}
 
-    for key, value in entry.items(): 
+    for key, value in entry.items():
 
       new_key = self.renameField(key);
 
@@ -723,7 +723,7 @@ class BibTeXProcessor:
   def decode(self, field, value):
     if BIBTEX_FIELDS.has_key(field):
       t = BIBTEX_FIELDS[field]["type"]
-    else: 
+    else:
       t = "string"
 
     if t == "string" or t == "text":
@@ -812,7 +812,7 @@ class BibTeXProcessor:
     return tmp
 
   def _unicode(self, text):
-    from publications.transcode import tex_to_unicode
+    from publications_bibtex.transcode import tex_to_unicode
 
     text = tex_to_unicode(text)
     return re.sub(r'([^\\\\]?)([{}])', "\\1", text)
@@ -829,7 +829,7 @@ class BibTeXFormatter:
 
   def format(self, entry):
 
-    from publications.transcode import unicode_to_tex
+    from publications_bibtex.transcode import unicode_to_tex
 
     bibtex_type = entry["type"]
     bibtex_key = entry["key"]
@@ -843,7 +843,7 @@ class BibTeXFormatter:
     return "@" + bibtex_type + " {" + bibtex_key + ",\n" + ",\n".join(o) + "\n}\n"
 
   def formatPeople(self, people, nice = False):
-    if not type(people) == list: 
+    if not type(people) == list:
       people = parsePeople(people)
     if nice:
       last = array_pop(people)
