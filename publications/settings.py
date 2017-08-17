@@ -128,5 +128,8 @@ PUBLICATIONS_EXPORTERS = (
   'publications_bibtex.BibTeXExporter',
   )
 
-PUBLICATIONS_USE_XSENDFILE = True
+# Set this to nginx or apache to use frontend webserver
+# for sending files (see X-Sendfile and X-Accel-Redirect)
+# for more information.
+PUBLICATIONS_DOWNLOAD_MODE = ''
 

@@ -1,6 +1,6 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_modify adminmedia %}
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />{% endblock %}
+{% load i18n admin_modify staticfiles %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "css/forms.css" %}" />{% endblock %}
 {% block breadcrumbs %}
 	<div class="breadcrumbs">
 		<a href="../../../">{% trans "Home" %}</a> &rsaquo;
@@ -11,7 +11,7 @@
 {% endblock %}
 {% block content %}
 	<div id="content-main">
-		<form method="post" action="{% url admin:merge_people %}">
+		<form method="post" action="{% url "admin:merge_people" %}">
 			{% csrf_token %}
 			{{ bib }}
 			<div>

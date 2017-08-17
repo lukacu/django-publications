@@ -186,7 +186,7 @@ class PersonAdmin(admin.ModelAdmin):
     return HttpResponseRedirect(reverse("admin:publications_person_changelist"))
 
   def get_urls(self):
-      from django.conf.urls.defaults import patterns, url
+      from django.conf.urls import patterns, url
       urls = super(PersonAdmin, self).get_urls()
       my_urls = patterns('',
           url(

@@ -238,9 +238,13 @@ def files(request, publication_id):
 
   mimetype = mimetypes.guess_type(filepath_absolute)
 
-  if getattr(settings, 'PUBLICATIONS_USE_XSENDFILE', False):
-    response = HttpResponse(mimetype=mimetype)
+  mode = getattr(settings, 'PUBLICATIONS_DOWNLOAD_MODE', '')
+  if mode == 'apache':
+    response = HttpResponse(content_type=mimetype)
     response['X-Sendfile'] = smart_str(filepath_absolute)
+  if mode == 'nginx':
+    response = HttpResponse(content_type=mimetype)
+    response['X-Accel-Redirect'] = smart_str(filepath)
   else:
     response = HttpResponse(open(filepath_absolute, "r"), content_type=mimetype)
 
