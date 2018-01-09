@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
+data_files = []
+
+import fnmatch
+import os
+
+for root, dirnames, filenames in os.walk(os.path.join('publications', 'templates')):
+    for filename in fnmatch.filter(filenames, '*.html'):
+        data_files.append(os.path.join('..', root, filename))
+
+print data_files
+
 setup(
     name = "django-publications",
     version = "0.1",
@@ -13,6 +24,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
+    package_data={'': data_files},
     classifiers = [
         "Development Status :: 3 - Alpha",
         "Environment :: Web Environment",
