@@ -146,7 +146,7 @@ class BibTeXExporter:
       author_identifier = first_author.identifier()
     else:
       author_identifier = "UNCREDITED"
-    author_identifier.replace(" ", "_")
+    author_identifier = author_identifier.replace(" ", "_")
     return author_identifier + str(publication.year)
 
 

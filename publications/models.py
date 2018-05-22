@@ -442,7 +442,7 @@ class Publication(models.Model):
       author_identifier = first_author.identifier()
     else:
       author_identifier = "UNCREDITED"
-
+    author_identifier = author_identifier.replace(" ", "_")
     firstword, restwords= self.title.split(' ',1)
 
     return author_identifier + str(self.year) + unicode_to_ascii(firstword).replace("?", "_")
