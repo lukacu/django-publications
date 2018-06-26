@@ -6,9 +6,10 @@ data_files = []
 import fnmatch
 import os
 
-for root, dirnames, filenames in os.walk(os.path.join('publications', 'templates')):
-    for filename in fnmatch.filter(filenames, '*.html'):
-        data_files.append(os.path.join('..', root, filename))
+for data_dir in ['templates', 'static']:
+    for root, dirnames, filenames in os.walk(os.path.join('publications', data_dir)):
+        for filename in filenames:
+            data_files.append(os.path.join('..', root, filename))
 
 print data_files
 
