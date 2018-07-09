@@ -272,11 +272,11 @@ def prepare_json(publication):
 
 def render_result(request, publications, title, format, group):
   if format == "json":
-    data = list()
-    limit = max(1, getattr(settings, 'PUBLICATIONS_JSON_SIZE', 10))
-    for publication in publications[0:limit]:
+    data = []
+    limit = getattr(settings, 'PUBLICATIONS_JSON_SIZE', -1)
+    for publication in publications[0:limit] if limit > 0 else publications:
       data.append(prepare_json(publication))
-    response = JsonResponse(data)
+    response = HttpResponse(json.dumps(data), content_type='application/json')
     response['Access-Control-Allow-Origin'] = "*"
     return response
   elif format == 'default':
