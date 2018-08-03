@@ -51,7 +51,7 @@ def publication(request, publication_id):
     format = 'default'
   if format == "json":
     data = prepare_json(publication)
-    response = JsonResponse([data])
+    response = HttpResponse(json.dumps(data), content_type='application/json')
     response['Access-Control-Allow-Origin'] = "*"
     return response
   elif format == 'default':
