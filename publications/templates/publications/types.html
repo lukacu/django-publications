@@ -5,7 +5,7 @@
 	<ul id="types">
 	{% for type in types %}
 		<li class="publications type_{{ type.identifier }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
-		<a href="{% if group %}{% url publications-group-type publication_type=type.identifier group=group.identifier %}{% else %}{% url publications-type publication_type=type.identifier %}{% endif %}">{{ type.title }}</a><span class="count">{{ type.count }}</span>
+		<a href="{% if group %}{% url 'publications-group-type' publication_type=type.identifier group=group.identifier %}{% else %}{% url 'publications-type' publication_type=type.identifier %}{% endif %}">{{ type.title }}</a><span class="count">{{ type.count }}</span>
 		</li>
 	{% endfor %}
 	</ul>

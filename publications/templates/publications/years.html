@@ -6,9 +6,9 @@
 	{% for year in years %}
 		<li class="publications year_{{ year.year }} {% if forloop.last %}last{% endif %}{% if forloop.first %}first{% endif %}">
         {% if group %}
-        <a href="{% url publications-group-year group=group.identifier year=year.year %}">{{ year.year }}</a>
+        <a href="{% url 'publications-group-year' group=group.identifier year=year.year %}">{{ year.year }}</a>
         {% else %}
-		<a href="{% url publications-year year=year.year %}">{{ year.year }}</a>
+		<a href="{% url 'publications-year' year=year.year %}">{{ year.year }}</a>
         {% endif %}
         <span class="count">{{ year.count }}</span>
 		</li>
