@@ -42,8 +42,8 @@ class PublicationForm(forms.ModelForm):
   def __init__(self, *args, **kwargs):
     super(PublicationForm, self).__init__(*args, **kwargs)
 
-    if kwargs.has_key('instance'):
-      instance = kwargs['instance']
+    if hasattr(self, 'instance'):
+      instance = self.instance
       self.initial['people_authorship'] = instance.people_as_string()
 
   def save(self, commit=True):
