@@ -1,6 +1,6 @@
 // -*- Mode: javascript; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*-
 
-// Fix for IE8 & IE9 ajax requests (https://raw.github.com/jaubourg/ajaxHooks/master/src/xdr.js) 
+// Fix for IE8 & IE9 ajax requests (https://raw.github.com/jaubourg/ajaxHooks/master/src/xdr.js)
 if ( window.XDomainRequest ) {
 	jQuery.ajaxTransport(function( s ) {
 		if ( s.crossDomain && s.async ) {
@@ -87,18 +87,7 @@ if (jQuery) {
                         + publication.year);
                 return ($('<div/>').addClass("publication_inline publication_type_" + publication.type).append(title, authors, published));
             }
-/*
-            <div class="publication_inline publication_type_{{ publication.type }}">
-                <div class="title"><a href="{{ publication.get_absolute_url }}/{{ publication.title|slugify }}" class="title">{{ publication.title }}</a></div>
-                <div class="authors">
-{% for author in publication.authors %}
-                    <span class="person">
-{% if author.public %}<a href="{{ author.get_absolute_url }}/{{ author.full_name|slugify }}">{{ author.full_name }}</a>{% else %}{{ author.full_name }}{% endif %}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %}{% if not forloop.first %},{% endif %} and {% else %}, {% endif %}{% endif %}
-{% endfor %}
-                </div>
-                <div class="published">{% if publication.within %}{{ publication.within }}, {% endif %}{% if publication.publisher %}{{ publication.publisher }}, {% endif %}{{ publication.year }}</div>
-            </div>
-            */
+
             var a = $(this);
             var queryParameters = {}, queryString = this.search.substring(1),
                 re = /([^&=]+)=([^&]*)/g, m;
@@ -107,7 +96,7 @@ if (jQuery) {
             }
             if ('format' in queryParameters) return;
             queryParameters['format'] = 'json';
-            //    this.search = $.param(queryParameters);
+
             a.addClass("waiting");
             $.ajax({
                 url:this.href,
@@ -127,9 +116,15 @@ if (jQuery) {
 
                         var list = $('<ul/>', {'class':a.attr("class")});
                         list.addClass("embedded");
-                        data.forEach(function (publication) {
-                            list.append($('<li/>').append(publicationTemplate(publication)));
-                        });
+
+                        if (Array.isArray(data)) {
+                          data.forEach(function (publication) {
+                              list.append($('<li/>').append(publicationTemplate(publication)));
+                          });
+                        } else {
+                            list.append($('<li/>').append(publicationTemplate(data)));
+                        }
+
 
                         a.replaceWith(list);
                         list.after($("<a/>").attr({"href" : a.attr("href")}).addClass("publications external").text("More"));
