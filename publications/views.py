@@ -26,19 +26,17 @@ PUBLICATION_ORDER = {
 }
 
 def tag(request, tag):
-  #tag = get_object_or_404(Tag, slug = tag)
 
   order_by = PUBLICATION_ORDER[request.GET['order']] if 'order' in request.GET and PUBLICATION_ORDER.has_key(request.GET['order']) else PUBLICATION_ORDER['type']
 
   candidates = Publication.objects.filter(public=True, tags__name=tag).order_by(*order_by)
-  #candidates = TaggedItem.objects.get_by_model(Publication.objects.filter(public=True).order_by(*order_by), tag)
 
   if 'format' in request.GET:
     format = request.GET['format']
   else:
     format = 'default'
 
-  return render_result(request, candidates, "Publications for keyword %s" % tag.name, format, None)
+  return render_result(request, candidates, "Publications for keyword %s" % tag, format, None)
 
 
 def publication(request, publication_id):
