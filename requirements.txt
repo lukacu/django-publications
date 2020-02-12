@@ -1,4 +1,4 @@
-Django==1.8
+Django==1.11.28
 django-taggit==0.22.1
 django-imagekit
 django-extensions
